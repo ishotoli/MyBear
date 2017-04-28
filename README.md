@@ -150,7 +150,7 @@ body_len = 16 + 16 + 6 +  master_filenameBytes.length + file_size
 |8|STORAGE_PROTO_CMD_RESP|
 |9|0|
 
-#### STORAGE_PROTO_CMD_DELETE_FILE 上传从文件   
+#### STORAGE_PROTO_CMD_DELETE_FILE 删除文件  
  
 |位置|内容| 
 |----|----|
