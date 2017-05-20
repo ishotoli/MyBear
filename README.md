@@ -126,3 +126,90 @@ Java高仿FastDFS
 ---- | ------
 0~9   | header
 10    |
+
+#### STORAGE_PROTO_CMD_DOWNLOAD_FILE 下载文件  
+
+|位置|内容|
+|----|----|
+|0-9 |header(STORAGE_PROTO_CMD_DOWNLOAD_FILE)|
+|10-17|offset|
+|18-25|downloadfile length|
+|26-31|group name|
+|32-  |fileName|
+|返回:|        |
+|0-9  |header(STORAGE_PROTO_CMD_RESP)|
+
+#### STORAGE_PROTO_CMD_UPLOAD_FILE 上传文件   
+ 
+|位置|内容| 
+|----|----|
+|0-9 |header(STORAGE_PROTO_CMD_UPLOAD_FILE,body_len,0)|
+|10  |storePathIndex(0)|
+|11-18|file_size|
+|19-24|FDFS_FILE_EXT_NAME_MAX_LEN|
+|25-  |文件内容|
+|返回：|       |
+|0-7|pkg_len|
+|8|STORAGE_PROTO_CMD_RESP|
+|9|0|
+|10-25|group_name|
+|26-  |remote_filename|
+
+body_len = 9 + 6 + file_size
+
+#### STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE 上传从文件   
+ 
+|位置|内容| 
+|----|----|
+|0-7 |body_len|
+|8|STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE|
+|9|0|
+|10-17|主文件名长度master_filename.length()|
+|18-25|文件大小file_size|
+|26-41|FDFS_FILE_PREFIX_MAX_LEN|
+|42-47|后缀名ext_name_bs|
+|48-|主文件名master_filename|
+|返回：|       |
+|0-7|pkg_len|
+|8|STORAGE_PROTO_CMD_RESP|
+|9|0|
+|10-25|group_name|
+|26-  |remote_filename|
+
+body_len = 16 + 16 + 6 +  master_filenameBytes.length + file_size
+
+#### STORAGE_PROTO_CMD_SET_METADATA 设置meta  
+|位置|内容|
+|----|----|
+|0-7|16+1+groupBytes.length+filenameBytes.length+meta_buff.length|
+|8|STORAGE_PROTO_CMD_SET_METADATA|
+|9|0|
+|10-17|filenameBytes.length|
+|18-25|meta_buff.length|
+|26|STORAGE_SET_METADATA_FLAG_OVERWRITE|
+|27-42|group_name|
+|43-|file_name|
+|-|meta_buff|
+|返回:|
+|0-7|pkg_len|
+|8|STORAGE_PROTO_CMD_RESP|
+|9|0|
+
+#### STORAGE_PROTO_CMD_DELETE_FILE 删除文件  
+ 
+|位置|内容| 
+|----|----|
+|0-7 |body_len|
+|8|STORAGE_PROTO_CMD_DELETE_FILE|
+|9|0|
+|10-25|groupBytes|
+|26-|filenameBytes|
+|返回：|       |
+|0-7|pkg_len|
+|8|STORAGE_PROTO_CMD_RESP|
+|9|0|
+
+
+
+ 
+
