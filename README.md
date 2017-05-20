@@ -120,13 +120,6 @@ Java高仿FastDFS
 47~48 |PORT端口
 49    |存储路径索引
 
-##### upload:
-
-位置 | 内容
----- | ------
-0~9   | header
-10    |
-
 #### STORAGE_PROTO_CMD_DOWNLOAD_FILE 下载文件  
 
 |位置|内容|
@@ -140,8 +133,8 @@ Java高仿FastDFS
 |0-9  |header(STORAGE_PROTO_CMD_RESP)|
 
 #### STORAGE_PROTO_CMD_UPLOAD_FILE 上传文件   
- 
-|位置|内容| 
+
+|位置|内容|
 |----|----|
 |0-9 |header(STORAGE_PROTO_CMD_UPLOAD_FILE,body_len,0)|
 |10  |storePathIndex(0)|
@@ -158,8 +151,8 @@ Java高仿FastDFS
 body_len = 9 + 6 + file_size
 
 #### STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE 上传从文件   
- 
-|位置|内容| 
+
+|位置|内容|
 |----|----|
 |0-7 |body_len|
 |8|STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE|
@@ -196,8 +189,8 @@ body_len = 16 + 16 + 6 +  master_filenameBytes.length + file_size
 |9|0|
 
 #### STORAGE_PROTO_CMD_DELETE_FILE 删除文件  
- 
-|位置|内容| 
+
+|位置|内容|
 |----|----|
 |0-7 |body_len|
 |8|STORAGE_PROTO_CMD_DELETE_FILE|
@@ -208,8 +201,3 @@ body_len = 16 + 16 + 6 +  master_filenameBytes.length + file_size
 |0-7|pkg_len|
 |8|STORAGE_PROTO_CMD_RESP|
 |9|0|
-
-
-
- 
-
