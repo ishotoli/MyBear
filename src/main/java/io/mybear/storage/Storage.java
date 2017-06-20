@@ -15,6 +15,9 @@ import static org.csource.fastdfs.ProtoCommon.*;
 
 
 public class Storage {
+    static ByteBuffer buildHeader(long len, byte cmd, int state) {
+        return ByteBuffer.allocate(90000).putLong(len).put(cmd).put((byte) state);
+    }
 
     static void setGroupName(ByteBuffer byteBuffer, String name) {
         ByteBuffer groupName = ByteBuffer.allocate(16);
@@ -25,6 +28,12 @@ public class Storage {
 
     static void setStorageCMDResp(ByteBuffer byteBuffer) {
         byteBuffer.put(8, TRACKER_PROTO_CMD_RESP);
+    }
+
+    static String getGroupName(ByteBuffer byteBuffer) {
+        byte[] bytes = new byte[16];
+        byteBuffer.get(bytes);
+        return new String(bytes);
     }
 
     public static void main(String args[]) throws Exception {
@@ -93,13 +102,32 @@ public class Storage {
                             selectedKey.attach(res);
                             break;
                         }
+                        case STORAGE_PROTO_CMD_DOWNLOAD_FILE: {
+                            byteBuffer.position(0);
+                            long pkglen = byteBuffer.getLong(0);
+                            byteBuffer.position(10);
+                            long offset = byteBuffer.getLong(10);
+                            byteBuffer.position(18);
+                            long downloadFileLength = byteBuffer.getLong(18);
+                            byteBuffer.position(26);
+                            String groupName = getGroupName(byteBuffer);
+                            String fileName = getGroupName(byteBuffer);//暂定，之后需要修改
+                            ByteBuffer header = buildHeader(downloadFileLength, TRACKER_PROTO_CMD_RESP, 0);
+                            header.flip();
+                            socketChannel.write(header);
+                            byteBuffer.limit(256);
+                            ByteChannel byteChannel = Files.newByteChannel(Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar"), StandardOpenOption.READ);
+                            byteChannel.read(byteBuffer);
+                            byteBuffer.flip();
+                            while (socketChannel.write(byteBuffer) > 0) ;
+                            byteBuffer.clear();
+                            byteChannel.close();
+                            break;
+                        }
                         case STORAGE_PROTO_CMD_DELETE_FILE: {
                             break;
                         }
                         case STORAGE_PROTO_CMD_SET_METADATA: {
-                            break;
-                        }
-                        case STORAGE_PROTO_CMD_DOWNLOAD_FILE: {
                             break;
                         }
                         case STORAGE_PROTO_CMD_GET_METADATA: {

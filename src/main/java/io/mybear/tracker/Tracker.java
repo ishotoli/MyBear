@@ -15,7 +15,7 @@ import static org.csource.fastdfs.ProtoCommon.*;
 public class Tracker {
 
     static ByteBuffer buildHeader(long len, byte cmd, int state) {
-        return ByteBuffer.allocate(90000).putLong(len).put((byte) cmd).put((byte) state);
+        return ByteBuffer.allocate(90000).putLong(len).put(cmd).put((byte) state);
     }
 
     static void setIP(ByteBuffer byteBuffer, String ip) {
@@ -117,6 +117,23 @@ public class Tracker {
                             break;
                         }
                         case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE: {
+                            /**
+                             pkg format:
+                             Header
+                             FDFS_GROUP_NAME_MAX_LEN bytes: group_name
+                             remain bytes: filename
+                             **/
+                            byteBuffer.position(0);
+                            long pkglen = byteBuffer.getLong(0);
+                            byteBuffer.position(10);
+                            String groupName = getGroupName(byteBuffer);
+                            String fileName = getGroupName(byteBuffer);//暂定，之后需要修改
+                            res = buildHeader(0, TRACKER_PROTO_CMD_RESP, 0);
+                            res.position(26);
+                            setIP(res, "127.0.0.1");
+                            setPort(res, 23000);
+                            setIP(res, "127.0.0.2");
+                            res.putLong(0, 54);
                             break;
                         }
                         case TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE: {
