@@ -115,7 +115,7 @@ public class Storage {
                             ByteBuffer header = buildHeader(downloadFileLength, TRACKER_PROTO_CMD_RESP, 0);
                             header.flip();
                             socketChannel.write(header);
-                            byteBuffer.limit(256);
+                            byteBuffer.limit((int) downloadFileLength);
                             ByteChannel byteChannel = Files.newByteChannel(Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar"), StandardOpenOption.READ);
                             byteChannel.read(byteBuffer);
                             byteBuffer.flip();
