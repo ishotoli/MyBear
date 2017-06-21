@@ -85,12 +85,9 @@ public class TrackerTypes {
     public static final String FDFS_STORAGE_DATA_DIR_FORMAT = "%02X";
     public static final String FDFS_STORAGE_META_FILE_EXT = "-m";
     public static final int INFINITE_FILE_SIZE = 0;
-    public static final int FDFS_APPENDER_FILE_SIZE =
-            INFINITE_FILE_SIZE;
-
+    public static final int FDFS_APPENDER_FILE_SIZE = INFINITE_FILE_SIZE;
 
     public static final long FDFS_TRUNK_FILE_MARK_SIZE = (512 * 1024L * 1024 * 1024 * 1024 * 1024L);
-
 
     public static final int FDFS_CHANGE_FLAG_TRACKER_LEADER = 1;  //tracker leader changed
     public static final int FDFS_CHANGE_FLAG_TRUNK_SERVER = 2;  //trunk server changed

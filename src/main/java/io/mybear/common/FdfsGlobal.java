@@ -5,4 +5,5 @@ package io.mybear.common;
  */
 public class FdfsGlobal {
     public static final int FDFS_FILE_EXT_NAME_MAX_LEN = 6;
+    public static final String g_fdfs_base_path = "/tmp";
 }
