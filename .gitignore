@@ -2,3 +2,5 @@
 .idea/*
 target
 target/*
+/MyBear.iml
+/.idea/
