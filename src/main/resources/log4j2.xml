@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- monitorInterval 单位:秒-->
+<Configuration status="WARN" monitorInterval="600">
+    <Properties>
+        <!-- 配置日志文件输出目录 -->
+        <Property name="LOG_HOME">D:/data/logs/mybear</Property>
+
+    </Properties>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %class{36} -- %msg%xEx%n"/>
+        </Console>
+
+        <RollingFile name="app_log" fileName="${LOG_HOME}/logs/app.log"
+                     filePattern="${LOG_HOME}/$${date:yyyy-MM}/app-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %class{36} -- %msg%xEx%n"/>
+            <Policies>
+                <!-- interval 以日志的命名精度来确定单位 比如:yyyy-MM-dd-HH 单位为小时，yyyy-MM-dd-HH-mm 单位为分钟-->
+                <!-- modulate 以0点为边界进行偏移计算 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+        </RollingFile>
+
+        <RollingFile name="err_log" fileName="${LOG_HOME}/logs/error.log"
+                     filePattern="${LOG_HOME}/$${date:yyyy-MM}/error-%d{yyyy-MM-dd}.log.gz">
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %class{36} -- %msg%xEx%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+        <Root level="error">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="err_log"/>
+        </Root>
+
+        <Logger name="io.mybear" level="debug" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="app_log"/>
+            <AppenderRef ref="err_log"/>
+        </Logger>
+    </Loggers>
+</Configuration>
