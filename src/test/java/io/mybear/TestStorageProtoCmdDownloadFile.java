@@ -52,6 +52,8 @@ public class TestStorageProtoCmdDownloadFile {
 
             byte[] result = client.download_file(group_name, remote_filename, file_offset, download_bytes);
             System.out.println("download result is: " + result.length);
+            int res = client.delete_file1("hello/filedId");
+            System.out.println("delete res:" + res);
 
             trackerServer.close();
         } catch (Exception ex) {

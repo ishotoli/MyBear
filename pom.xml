@@ -51,11 +51,6 @@
             <version>${log4j-slf4j-impl.version}</version>
         </dependency>
         <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-            <version>${org.apache.commons.lang.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>${log4j-core.version}</version>
@@ -65,6 +60,7 @@
             <groupId>org.csource</groupId>
             <artifactId>fastdfs-client-java</artifactId>
             <scope>system</scope>
+            <version>1.27</version>
             <systemPath>${basedir}/lib/fastdfs-client-java-1.27-SNAPSHOT.jar</systemPath>
         </dependency>
     </dependencies>

@@ -1,5 +1,9 @@
 package io.mybear.storage;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -15,6 +19,8 @@ import static org.csource.fastdfs.ProtoCommon.*;
 
 
 public class Storage {
+    private static final Logger logger = LoggerFactory.getLogger(Storage.class);
+
     static ByteBuffer buildHeader(long len, byte cmd, int state) {
         return ByteBuffer.allocate(90000).putLong(len).put(cmd).put((byte) state);
     }
@@ -125,15 +131,76 @@ public class Storage {
                             break;
                         }
                         case STORAGE_PROTO_CMD_DELETE_FILE: {
+                            byteBuffer.position(0);
+                            long pkgLen = byteBuffer.getLong(0);
+                            byteBuffer.position(10);
+                            String groupName = getGroupName(byteBuffer);
+                            String fileName = getGroupName(byteBuffer);//之后还要修改;
+                            logger.info("pkgLen:%s;groupName:%s;fileName:%s", pkgLen, groupName, fileName);
+                            ByteBuffer header = buildHeader(0, TRACKER_PROTO_CMD_RESP, 0);
+                            header.flip();
+                            while (socketChannel.write(header) > 0) ;
                             break;
                         }
                         case STORAGE_PROTO_CMD_SET_METADATA: {
+                            byteBuffer.position(10);
+                            long length = byteBuffer.getLong(10);
+                            byteBuffer.position(18);
+                            long metaBufferLength = byteBuffer.getLong(18);
+                            byteBuffer.position(26);
+                            switch (byteBuffer.get(26)) {
+                                case STORAGE_SET_METADATA_FLAG_OVERWRITE: {
+
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            byteBuffer.position(27);
+                            String groupName = getGroupName(byteBuffer);
+                            String fileName = getGroupName(byteBuffer);//之后还要修改;
+                            //metaBuffer 暂时不接收
+                            ByteBuffer header = buildHeader(0, TRACKER_PROTO_CMD_RESP, 0);
+                            header.flip();
+                            while (socketChannel.write(header) > 0) ;
                             break;
                         }
                         case STORAGE_PROTO_CMD_GET_METADATA: {
                             break;
                         }
                         case STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE: {
+                            long bodyLen = byteBuffer.getLong(0);
+                            int storePathIndex = byteBuffer.get(10);
+                            long fileSize = byteBuffer.getLong(11);
+                            long extName = byteBuffer.getLong(19) >> 8;//6
+                            Path file = Paths.get("d:/" + Integer.valueOf(rand.nextInt()).toString().substring(1, 4) + ".jar");
+                            Files.createFile(file);
+                            ByteChannel byteChannel = Files.newByteChannel(file, StandardOpenOption.APPEND);
+                            byteBuffer.limit(byteBuffer.position());
+                            byteBuffer.position(25);
+                            byteChannel.write(byteBuffer);
+                            byteBuffer.clear();
+                            while (socketChannel.read(byteBuffer) > 0) {
+                                byteBuffer.flip();
+                                byteChannel.write(byteBuffer);
+                                byteBuffer.clear();
+                            }
+                            byteBuffer.clear();
+                            byteChannel.close();
+                            res = byteBuffer;
+                            res.position(8);
+                            setStorageCMDResp(res);
+                            res.position(9);
+                            res.put((byte) 0);
+                            setGroupName(res, "Hello");
+                            setGroupName(res, file.toString());
+                            int limit = res.position();
+                            int pkgLen = limit - 10;
+                            res.position(0);
+                            res.putLong(0, pkgLen);
+                            res.position(limit);
+                            System.out.println(res.position());
+                            selectedKey.attach(res);
                             break;
                         }
                         case STORAGE_PROTO_CMD_QUERY_FILE_INFO: {

@@ -51,9 +51,9 @@ public class Test {
             String item;
             String fileid;
             String name = System.getProperty("os.name");
-            Path path=Paths.get(System.getProperty("user.dir")+"/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
+            Path path = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
             if (name.toLowerCase().contains("windows")) {
-                item =path.toString();
+                item = path.toString();
                 fileid = sc1.upload_file1(item, "exe", meta_list);
             } else {
                 item = "/etc/hosts";
@@ -61,7 +61,14 @@ public class Test {
             }
 
             System.out.println("Upload local file " + item + " ok, fileid=" + fileid);
-        }finally {
+            //upload_file(String group_name, String master_filename, String prefix_name, byte[] file_buff, String file_ext_name, NameValuePair[] meta_list)
+            meta_list = new NameValuePair[2];
+            meta_list[0] = new NameValuePair("width", "800");
+            meta_list[1] = new NameValuePair("heigth", "600");
+            String[] res = sc1.upload_file("hello", "test", "jar", Files.readAllBytes(path), "file_ext_name", meta_list);
+            System.out.println(Arrays.toString(res));
+            System.out.println(sc1.set_metadata1(fileid, meta_list, (byte) 0));
+        } finally {
             tracker.stop();
             storage.stop();
         }
