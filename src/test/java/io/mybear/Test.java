@@ -1,7 +1,7 @@
 package io.mybear;
 
 
-import io.mybear.storage.Storage;
+import io.mybear.storage.StorageNio;
 import io.mybear.tracker.Tracker;
 import org.csource.common.NameValuePair;
 import org.csource.fastdfs.*;
@@ -28,7 +28,7 @@ public class Test {
         Thread.sleep(10);
         Thread storage = new Thread(() -> {
             try {
-                Storage.main(args);
+                StorageNio.main(args);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -54,6 +54,7 @@ public class Test {
             Path path = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
             if (name.toLowerCase().contains("windows")) {
                 item = path.toString();
+                fileid = sc1.upload_file1(item, "exe", meta_list);
                 fileid = sc1.upload_file1(item, "exe", meta_list);
             } else {
                 item = "/etc/hosts";

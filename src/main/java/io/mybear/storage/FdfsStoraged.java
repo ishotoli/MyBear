@@ -7,10 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -55,14 +53,14 @@ public class FdfsStoraged {
         }
         RandomAccessFile raf = new RandomAccessFile(file, "rw");
         FileChannel fc = raf.getChannel();
-        try (FileLock fileLock = fc.tryLock()) {
-            if (DEBUG_FLAG) {
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
+//        try (FileLock fileLock = fc.tryLock()) {
+//            if (DEBUG_FLAG) {
+//
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return;
+//        }
 
     }
 
