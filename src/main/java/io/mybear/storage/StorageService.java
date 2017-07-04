@@ -3,16 +3,7 @@ package io.mybear.storage;
 import io.mybear.common.FastTaskInfo;
 import io.mybear.net2.ByteBufferArray;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Random;
-
-import static io.mybear.storage.Storage.setGroupName;
-import static io.mybear.storage.Storage.setStorageCMDResp;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -66,54 +57,54 @@ public class StorageService {
     }
 
     public static void STORAGE_PROTO_CMD_UPLOAD_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
-        long len = taskInfo.getOffset();
-        System.out.println("len:" + len);
-        System.out.println("taskInfo:" + taskInfo.getLength());
-
-        if (taskInfo.getLength() < (len)) {
-            if (h == false) {
-                h = true;
-            } else {
-                return;
-            }
-
-            try {
-                Random rand = new Random();
-                Path file = Paths.get("d:/" + Integer.valueOf(rand.nextInt()).toString().substring(1, 4) + ".jar");
-                Files.createFile(file);
-                ByteChannel byteChannel = Files.newByteChannel(file, StandardOpenOption.APPEND);
-                ByteBuffer byteBuffer = byteBufferArray.getBlock(0);
-                byteBuffer.limit(byteBuffer.position());
-
-                byteBuffer.position(25);
-                byteChannel.write(byteBuffer);
-                for (int i = 1; i < byteBufferArray.getBlockCount(); i++) {
-                    byteBuffer = byteBufferArray.getBlock(i);
-                    byteBuffer.flip();
-                    byteChannel.write(byteBuffer);
-                }
-                byteChannel.close();
-
-                ByteBufferArray r = taskInfo.getMyBufferPool().allocate();
-                ByteBuffer res = r.addNewBuffer();
-                res.clear();
-                res.position(8);
-                setStorageCMDResp(res);
-                res.position(9);
-                res.put((byte) 0);
-                setGroupName(res, "Hello");
-                setGroupName(res, file.toString());
-                int limit = res.position();
-                int pkgLen = limit - 10;
-                res.position(0);
-                res.putLong(0, pkgLen);
-                res.position(limit);
-                taskInfo.write(r);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+//        long len = taskInfo.getOffset();
+//        System.out.println("len:" + len);
+//        System.out.println("taskInfo:" + taskInfo.getLength());
+//
+//        if (taskInfo.getLength() < (len)) {
+//            if (h == false) {
+//                h = true;
+//            } else {
+//                return;
+//            }
+//
+//            try {
+//                Random rand = new Random();
+//                Path file = Paths.get("d:/" + Integer.valueOf(rand.nextInt()).toString().substring(1, 4) + ".jar");
+//                Files.createFile(file);
+//                ByteChannel byteChannel = Files.newByteChannel(file, StandardOpenOption.APPEND);
+//                ByteBuffer byteBuffer = byteBufferArray.getBlock(0);
+//                byteBuffer.limit(byteBuffer.position());
+//
+//                byteBuffer.position(25);
+//                byteChannel.write(byteBuffer);
+//                for (int i = 1; i < byteBufferArray.getBlockCount(); i++) {
+//                    byteBuffer = byteBufferArray.getBlock(i);
+//                    byteBuffer.flip();
+//                    byteChannel.write(byteBuffer);
+//                }
+//                byteChannel.close();
+//
+//////                ByteBufferArray r = taskInfo.getMyBufferPool().allocate();
+////                ByteBuffer res = r.addNewBuffer();
+////                res.clear();
+////                res.position(8);
+////                setStorageCMDResp(res);
+////                res.position(9);
+////                res.put((byte) 0);
+////                setGroupName(res, "Hello");
+////                setGroupName(res, file.toString());
+////                int limit = res.position();
+////                int pkgLen = limit - 10;
+////                res.position(0);
+////                res.putLong(0, pkgLen);
+////                res.position(limit);
+////                taskInfo.write(r);
+//
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
     }
 
     public static void STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {

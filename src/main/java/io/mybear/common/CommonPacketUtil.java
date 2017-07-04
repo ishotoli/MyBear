@@ -45,33 +45,46 @@ public class CommonPacketUtil {
         readBuffer.position(offset);
     }
 
-
-    /**
-     * 解析出Packet边界,Packet为MSQL格式的报文，其他报文可以类比，
-     *
-     * @param readBuffer       当前（最后一个bytebuffer）
-     * @param readBufferOffset 上次解析的位置偏移量
-     * @return 下次解析的位置偏移量
-     */
-    public static int parsePackets(ByteBufferArray bufferArray, ByteBuffer readBuffer, final int readBufferOffset,
-                                   FastTaskInfo con) {
-        int offset = readBufferOffset;
-        int position = readBuffer.position();
-        if (con.cmd == 0) {
-            if (readBuffer.position() > 8) {
-                con.setCmd(readBuffer.get(8));
-                con.setLength(readBuffer.getLong(0));
-                con.setState(readBuffer.get(9));
-            } else {
-                return 0;
-            }
-        }
-        if (con.getLength() > con.getOffset()) {
-            con.setOffset(con.getOffset() + readBuffer.position() - readBufferOffset);
-        } else {
-            offset = readBuffer.position() - readBufferOffset;
-        }
-
-        return offset;
-    }
+//
+//    /**
+//     * 解析出Packet边界,Packet为MSQL格式的报文，其他报文可以类比，
+//     *
+//     * @param readBuffer       当前（最后一个bytebuffer）
+//     * @param readBufferOffset 上次解析的位置偏移量
+//     * @return 下次解析的位置偏移量
+//     */
+//    public static int parsePackets(ByteBufferArray bufferArray, ByteBuffer readBuffer, final int readBufferOffset,
+//                                   FastTaskInfo con) {
+//        int lastoOffset = readBufferOffset;
+//        int position = readBuffer.position();
+//        int readLen = position - lastoOffset;//读取的字节数
+//        int rest = (int) (con.getLength() - con.getOffset());//包剩余的字节数
+//        int nextPackageOffset = readLen - rest;//已经读取到,下一个包的字节数
+//
+//        if (nextPackageOffset > 0) {//粘包
+//
+//        } else {
+//            bufferArray.setCurPacketLength(position);
+//        }
+//
+//        if (readLen > rest) {
+//
+//        }
+//        if (con.cmd == 0) {
+//            if (readBuffer.position() > 8) {
+//                con.setCmd(readBuffer.get(8));
+//                con.setLength(readBuffer.getLong(0));
+//                con.setState(readBuffer.get(9));
+//            } else {
+//                return 0;
+//            }
+//        }
+//        if (con.getLength() > con.getOffset()) {
+//            con.setOffset(con.getOffset() + readBuffer.position() - readBufferOffset);
+//        } else {
+//           // offset = readBuffer.position() - readBufferOffset;
+//        }
+//
+//        return offset;
+//    }
 }

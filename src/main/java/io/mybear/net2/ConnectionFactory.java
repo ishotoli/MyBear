@@ -1,10 +1,12 @@
 package io.mybear.net2;
 
+import io.mybear.common.FastTaskInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.StandardSocketOptions;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -44,7 +46,7 @@ public abstract class ConnectionFactory {
 }
 
 @SuppressWarnings("rawtypes")
-class NIOHandlerWrap implements NIOHandler {
+class NIOHandlerWrap implements NIOHandler<FastTaskInfo> {
     protected static final Logger LOGGER = LoggerFactory
             .getLogger(NIOHandlerWrap.class);
     private final NIOHandler handler;
@@ -56,7 +58,7 @@ class NIOHandlerWrap implements NIOHandler {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onConnected(Connection con) throws IOException {
+    public void onConnected(FastTaskInfo con) throws IOException {
         con.setState(Connection.State.connecting);
         String info = con.getDirection() == Connection.Direction.in ? "remote peer connected to me "
                 + con
@@ -68,7 +70,7 @@ class NIOHandlerWrap implements NIOHandler {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onConnectFailed(Connection con, Throwable e) {
+    public void onConnectFailed(FastTaskInfo con, Throwable e) {
         LOGGER.warn("connection failed: " + e + " con " + con);
         handler.onConnectFailed(con, e);
 
@@ -76,13 +78,23 @@ class NIOHandlerWrap implements NIOHandler {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void handle(Connection con, ByteBufferArray nioData) {
+    public void handle(FastTaskInfo con, ByteBuffer nioData) {
         handler.handle(con, nioData);
+    }
+
+    @Override
+    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+        handler.handleEnd(con, nioData);
+    }
+
+    @Override
+    public void handleMetaData(FastTaskInfo con, ByteBuffer nioData) {
+        handler.handleMetaData(con, nioData);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onClosed(Connection con, String reason) {
+    public void onClosed(FastTaskInfo con, String reason) {
         handler.onClosed(con, reason);
 
     }

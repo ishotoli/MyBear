@@ -5,10 +5,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static org.csource.fastdfs.ProtoCommon.*;
+
 
 /**
  * @author wuzh
@@ -20,6 +25,12 @@ public abstract class Connection implements ClosableConnection {
     protected final SocketChannel channel;
     private final WriteQueue writeQueue = new WriteQueue(1024 * 1024 * 16);
     private final ReentrantLock writeQueueLock = new ReentrantLock();
+    public long length; //data length
+    public long offset = -10;
+    public int metaDataLength;
+    public byte cmd;
+    public FileChannel fileChannel;
+    public long position;
     protected String host;
     protected int port;
     protected int localPort;
@@ -35,10 +46,12 @@ public abstract class Connection implements ClosableConnection {
     protected int pkgTotalCount;
     @SuppressWarnings("rawtypes")
     protected NIOHandler handler;
+    boolean isUpload = false;
+    long testId;
     private State state = State.connecting;
     private Direction direction = Direction.in;
     private SelectionKey processKey;
-    private ByteBufferArray readBufferArray;
+    private ByteBuffer readBuffer;
     private int readBufferOffset;
     private ByteBuffer writeBuffer;
     private long lastLargeMessageTime;
@@ -47,6 +60,7 @@ public abstract class Connection implements ClosableConnection {
     private int maxPacketSize;
     private int packetHeaderSize;
     private ReactorBufferPool myBufferPool;
+    private PacketState packetState;
 
     public Connection(SocketChannel channel) {
         this.channel = channel;
@@ -55,6 +69,19 @@ public abstract class Connection implements ClosableConnection {
         this.lastReadTime = startupTime;
         this.lastWriteTime = startupTime;
         this.lastPerfCollectTime = startupTime;
+        this.packetState = PacketState.header;
+        // this.readBuffer.limit(10);
+    }
+
+    static void setStorageCMDResp(ByteBuffer byteBuffer) {
+        byteBuffer.put(8, TRACKER_PROTO_CMD_RESP);
+    }
+
+    static void setGroupName(ByteBuffer byteBuffer, String name) {
+        ByteBuffer groupName = ByteBuffer.allocate(16);
+        groupName.put(name.getBytes(StandardCharsets.US_ASCII));
+        groupName.position(0).limit(16);
+        byteBuffer.put(groupName);
     }
 
     public void resetPerfCollectTime() {
@@ -208,36 +235,6 @@ public abstract class Connection implements ClosableConnection {
         return isClosed;
     }
 
-    // public void write(byte[] src) {
-    // try {
-    // writeQueueLock.lock();
-    // ByteBuffer buffer = this.allocate();
-    // int offset = 0;
-    // int remains = src.length;
-    // while (remains > 0) {
-    // int writeable = buffer.remaining();
-    // if (writeable >= remains) {
-    // // can write whole srce
-    // buffer.put(src, offset, remains);
-    // this.writeQueue.offer(buffer);
-    // break;
-    // } else {
-    // // can write partly
-    // buffer.put(src, offset, writeable);
-    // offset += writeable;
-    // remains -= writeable;
-    // writeQueue.offer(buffer);
-    // buffer = allocate();
-    // continue;
-    // }
-    //
-    // }
-    // } finally {
-    // writeQueueLock.unlock();
-    // }
-    // this.enableWrite(true);
-    // }
-
     public void idleCheck() {
         if (isIdleTimeout()) {
             LOGGER.info(toString() + " idle timeout");
@@ -252,7 +249,7 @@ public abstract class Connection implements ClosableConnection {
     protected void cleanup() {
 
         // 清理资源占用
-        this.readBufferArray.recycle();
+        myBufferPool.recycle(readBuffer);
         this.writeQueue.recycle();
         if (writeBuffer != null) {
             // recycle(writeBuffer);
@@ -269,8 +266,9 @@ public abstract class Connection implements ClosableConnection {
         this.myBufferPool = myBufferPool;
         processKey = channel.register(selector, SelectionKey.OP_READ, this);
         NetSystem.getInstance().addConnection(this);
-        this.readBufferArray = myBufferPool.allocate();
-        readBufferArray.addNewBuffer();
+        //this.readBufferArray = myBufferPool.allocateByteBuffer()
+        readBuffer = this.myBufferPool.allocateByteBuffer();
+        readBuffer.limit(10);
         this.handler.onConnected(this);
 
     }
@@ -301,25 +299,6 @@ public abstract class Connection implements ClosableConnection {
     }
 
     public void write(ByteBufferArray bufferArray) {
-        // try {
-        // writeQueueLock.lock();
-        // List<ByteBuffer> blockes = bufferArray.getWritedBlockLst();
-        // if (!bufferArray.getWritedBlockLst().isEmpty()) {
-        // for (ByteBuffer curBuf : blockes) {
-        // writeQueue.offer(curBuf);
-        // }
-        // }
-        // ByteBuffer curBuf = bufferArray.getCurWritingBlock();
-        // if (curBuf.position() == 0) {// empty
-        // this.recycle(curBuf);
-        // } else {
-        // writeQueue.offer(curBuf);
-        // }
-        // } finally {
-        // writeQueueLock.unlock();
-        // bufferArray.clear();
-        // }
-        // this.enableWrite(true);
         writeQueueLock.lock();
         try {
             writeQueue.add(bufferArray);
@@ -327,13 +306,6 @@ public abstract class Connection implements ClosableConnection {
             writeQueueLock.unlock();
         }
         this.enableWrite(true);
-    }
-
-    public void write(byte[] data) {
-        ByteBufferArray bufferArray = myBufferPool.allocate();
-        ByteBuffer buffer = bufferArray.addNewBuffer();
-        buffer.put(data);
-        write(bufferArray);
     }
 
     private boolean write0() throws IOException {
@@ -370,30 +342,6 @@ public abstract class Connection implements ClosableConnection {
                 arry.recycle();
             }
         }
-        // while ((buffer = writeQueue.poll()) != null) {
-        // if (buffer.limit() == 0) {
-        // recycle(buffer);
-        // close("quit send");
-        // return true;
-        // }
-        // buffer.flip();
-        // while (buffer.hasRemaining()) {
-        // written = channel.write(buffer);
-        // if (written > 0) {
-        // netOutBytes += written;
-        // NetSystem.getInstance().addNetOutBytes(written);
-        // lastWriteTime = TimeUtil.currentTimeMillis();
-        // } else {
-        // break;
-        // }
-        // }
-        // if (buffer.hasRemaining()) {
-        // writeBuffer = buffer;
-        // return false;
-        // } else {
-        // recycle(buffer);
-        // }
-        // }
         return true;
     }
 
@@ -443,6 +391,96 @@ public abstract class Connection implements ClosableConnection {
         }
     }
 
+    void toHead(ByteBuffer byteBuffer) throws IOException {
+        byteBuffer.limit(10).position(0);
+        channel.read(byteBuffer);
+        this.packetState = PacketState.header;
+    }
+
+//    void toFix(ByteBuffer byteBuffer, int length) {
+//        byteBuffer.clear();
+//        byteBuffer.limit(length);
+//        this.packetState = PacketState.fix;
+//    }
+
+    void toPacket(ByteBuffer byteBuffer) {
+        byteBuffer.clear();
+        byteBuffer.limit(byteBuffer.capacity());
+        this.packetState = PacketState.packet;
+    }
+
+    void toMetaData(ByteBuffer byteBuffer, int metaDatalength) {
+        this.metaDataLength = metaDatalength;
+        byteBuffer.clear();
+        byteBuffer.limit(metaDatalength);
+        this.packetState = PacketState.metaData;
+    }
+
+    void toFix(ByteBuffer byteBuffer) {
+        long rest = (this.length - this.offset) % byteBuffer.capacity();
+        byteBuffer.clear();
+        byteBuffer.limit((int) rest);
+        this.packetState = PacketState.fix;
+    }
+
+    long getMetaDataLength(int cmd, long totalLen) {
+        switch (cmd) {
+            case FDFS_PROTO_CMD_QUIT:
+                return 0;
+            case TRACKER_PROTO_CMD_SERVER_LIST_GROUP:
+                return 0;
+            case TRACKER_PROTO_CMD_SERVER_LIST_STORAGE:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVER_DELETE_STORAGE:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ALL:
+                return totalLen;
+            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ALL:
+                return totalLen;
+            case TRACKER_PROTO_CMD_RESP:
+                return 0;
+            case FDFS_PROTO_CMD_ACTIVE_TEST:
+                return 0;
+            case STORAGE_PROTO_CMD_UPLOAD_FILE:
+                return 15;
+            case STORAGE_PROTO_CMD_DELETE_FILE:
+                return totalLen;
+            case STORAGE_PROTO_CMD_SET_METADATA:
+                return totalLen;
+            case STORAGE_PROTO_CMD_DOWNLOAD_FILE:
+                return totalLen;
+            case STORAGE_PROTO_CMD_GET_METADATA:
+                return totalLen;
+            case STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE:
+                return totalLen;
+            case STORAGE_PROTO_CMD_QUERY_FILE_INFO:
+                return totalLen;
+            case STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE:
+                this.isUpload = true;
+                return 15;//待修改
+            case STORAGE_PROTO_CMD_APPEND_FILE:
+                this.isUpload = true;
+                return 15;
+            case STORAGE_PROTO_CMD_MODIFY_FILE:
+                this.isUpload = true;
+                return 15;
+            case STORAGE_PROTO_CMD_TRUNCATE_FILE:
+                return 16;
+            default:
+                return -1;
+        }
+    }
+
     /**
      * 异步读取数据,only nio thread call
      *
@@ -452,51 +490,62 @@ public abstract class Connection implements ClosableConnection {
         if (this.isClosed) {
             return;
         }
-
-        boolean readAgain = true;
+//        if (isUpload){
+//            this.fileChannel.transferFrom(channel,position,length)
+//        }
         int got = 0;
-        while (readAgain) {
-            ByteBuffer readBuffer = readBufferArray.getLastByteBuffer();
-            got = channel.read(readBuffer);
-            switch (got) {
-                case 0: {
-                    // 如果空间不够了，继续分配空间读取
-                    if (readBuffer.remaining() == 0) {
-                        readBufferArray.addNewBuffer();
-                        readBufferArray.increatePacketIndex();
+        got = channel.read(readBuffer);
+        offset += got;
+        while (true) {
+            switch (packetState) {
+                case header: {
+                    if (readBuffer.position() < 10) {
+                        return;
                     } else {
-                        readAgain = false;
+                        this.length = readBuffer.getLong(0);
+                        this.cmd = readBuffer.get(8);
+                        int state = readBuffer.get(9);
+                        toMetaData(readBuffer, (int) getMetaDataLength(cmd, length));
+                        continue;
                     }
-                    break;
                 }
-                case -1: {
-                    readAgain = false;
-                    break;
-                }
-                default: {// readed some bytes
-
+                case metaData: {
                     if (readBuffer.hasRemaining()) {
-                        // 没有可读的机会，等待下次读取
-                        readAgain = false;
+                        return;
+                    } else {
+                        this.handler.handleMetaData(this, readBuffer);
+                        toFix(readBuffer);
+                        continue;
                     }
-
-                    // 子类负责解析报文
-                    readBufferOffset = parseProtocolPakage(this.readBufferArray, readBuffer, readBufferOffset);
-                    // 解析后处理
-                    handler.handle(this, this.readBufferArray);
+                }
+                case fix: {
+                    if (readBuffer.hasRemaining()) {
+                        return;
+                    } else {
+                        this.handler.handle(this, readBuffer);
+                        toPacket(readBuffer);
+                        continue;
+                    }
+                }
+                case packet:
+                default: {
+                    if (offset == length) {
+                        this.handler.handleEnd(this, readBuffer);
+                        toHead(readBuffer);
+                        length = 0;
+                        offset = -10;
+                        continue;
+                    } else if (readBuffer.hasRemaining()) {
+                        return;
+                    } else {
+                        this.handler.handle(this, readBuffer);
+                        readBuffer.clear();
+                        continue;
+                    }
                 }
             }
-        }
-        if (got == -1) {
-            return;
-        }
-        if (readBufferArray.getCurPacageLength() > 0) {
-//            pkgTotalCount += readBufferArray
-//            pkgTotalSize += length;
-            // todo 把完整解析的数据报文拿出来供处理
 
         }
-
     }
 
     protected abstract int parseProtocolPakage(ByteBufferArray readBufferArray, ByteBuffer readBuffer,
@@ -567,6 +616,10 @@ public abstract class Connection implements ClosableConnection {
 
     public enum State {
         connecting, connected, closing, closed, failed
+    }
+
+    public enum PacketState {
+        header, fix, packet, metaData
     }
 
     // 连接的方向，in表示是客户端连接过来的，out表示自己作为客户端去连接对端Sever

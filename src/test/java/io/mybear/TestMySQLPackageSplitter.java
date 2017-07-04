@@ -1,6 +1,5 @@
 package io.mybear;
 
-import io.mybear.common.CommonPacketUtil;
 import io.mybear.common.FastTaskInfo;
 import io.mybear.net2.ByteBufferArray;
 import io.mybear.net2.ReactorBufferPool;
@@ -55,7 +54,7 @@ public class TestMySQLPackageSplitter {
             byte[] data = new byte[curBuf.remaining()];
             int readed = mysqlPackgsStream.read(data);
             curBuf.put(data, 0, readed);
-            readBufferOffset = CommonPacketUtil.parsePackets(bufArray, curBuf, readBufferOffset, fakeCon);
+            //readBufferOffset = CommonPacketUtil.parsePackets(bufArray, curBuf, readBufferOffset, fakeCon);
         }
         return bufArray;
     }
