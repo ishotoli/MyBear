@@ -9,9 +9,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static io.mybear.net2.Connection.TaskType.*;
 import static org.csource.fastdfs.ProtoCommon.*;
 
 
@@ -29,8 +29,12 @@ public abstract class Connection implements ClosableConnection {
     public long offset = -10;
     public int metaDataLength;
     public byte cmd;
-    public FileChannel fileChannel;
-    public long position;
+    public long uploadFileSize;
+    public FileChannel uploadChannel;
+    public long downloadPosition;
+    public FileChannel downloadChannel;
+    public TaskType taskType = TaskType.Query;
+    public PacketState packetState;
     protected String host;
     protected int port;
     protected int localPort;
@@ -46,8 +50,6 @@ public abstract class Connection implements ClosableConnection {
     protected int pkgTotalCount;
     @SuppressWarnings("rawtypes")
     protected NIOHandler handler;
-    boolean isUpload = false;
-    long testId;
     private State state = State.connecting;
     private Direction direction = Direction.in;
     private SelectionKey processKey;
@@ -60,7 +62,6 @@ public abstract class Connection implements ClosableConnection {
     private int maxPacketSize;
     private int packetHeaderSize;
     private ReactorBufferPool myBufferPool;
-    private PacketState packetState;
 
     public Connection(SocketChannel channel) {
         this.channel = channel;
@@ -71,17 +72,6 @@ public abstract class Connection implements ClosableConnection {
         this.lastPerfCollectTime = startupTime;
         this.packetState = PacketState.header;
         // this.readBuffer.limit(10);
-    }
-
-    static void setStorageCMDResp(ByteBuffer byteBuffer) {
-        byteBuffer.put(8, TRACKER_PROTO_CMD_RESP);
-    }
-
-    static void setGroupName(ByteBuffer byteBuffer, String name) {
-        ByteBuffer groupName = ByteBuffer.allocate(16);
-        groupName.put(name.getBytes(StandardCharsets.US_ASCII));
-        groupName.position(0).limit(16);
-        byteBuffer.put(groupName);
     }
 
     public void resetPerfCollectTime() {
@@ -268,27 +258,43 @@ public abstract class Connection implements ClosableConnection {
         NetSystem.getInstance().addConnection(this);
         //this.readBufferArray = myBufferPool.allocateByteBuffer()
         readBuffer = this.myBufferPool.allocateByteBuffer();
-        readBuffer.limit(10);
+        offset = -10;
+        taskType = TaskType.Query;
+        readBuffer.limit(10).position(0);
         this.handler.onConnected(this);
 
     }
 
+    public void doWriteQueue0() throws IOException {
+        boolean noMoreData = write0();
+        lastWriteTime = TimeUtil.currentTimeMillis();
+        if (noMoreData) {
+            if ((processKey.isValid() && (processKey.interestOps() & SelectionKey.OP_WRITE) != 0)) {
+                disableWrite();
+            }
+        } else {
+            if ((processKey.isValid() && (processKey.interestOps() & SelectionKey.OP_WRITE) == 0)) {
+                enableWrite(false);
+            }
+        }
+    }
+
     public void doWriteQueue() {
         try {
-            boolean noMoreData = write0();
-            lastWriteTime = TimeUtil.currentTimeMillis();
-            if (noMoreData) {
-                if ((processKey.isValid() && (processKey.interestOps() & SelectionKey.OP_WRITE) != 0)) {
-                    disableWrite();
-                }
-
+            if (taskType != TaskType.Download) {
+                doWriteQueue0();
             } else {
-
-                if ((processKey.isValid() && (processKey.interestOps() & SelectionKey.OP_WRITE) == 0)) {
-                    enableWrite(false);
+                if (downloadPosition == 0) {
+                    while (!write0()) ;
+                }
+                lastWriteTime = TimeUtil.currentTimeMillis();
+                long size = downloadChannel.size();
+                downloadPosition += this.downloadChannel.transferTo(downloadPosition, downloadChannel.size() - downloadPosition, channel);
+                if (downloadPosition == size) {
+                    this.handler.handleEnd(this, readBuffer);
+                    toHead(readBuffer);
                 }
             }
-
         } catch (IOException e) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("caught err:", e);
@@ -309,7 +315,6 @@ public abstract class Connection implements ClosableConnection {
     }
 
     private boolean write0() throws IOException {
-
         for (; ; ) {
             int written = 0;
             ByteBufferArray arry = writeQueue.pull();
@@ -318,15 +323,12 @@ public abstract class Connection implements ClosableConnection {
             }
             for (ByteBuffer buffer : arry.getWritedBlockLst()) {
                 buffer.flip();
-
-                // ByteBuffer buffer = writeBuffer;
                 if (buffer != null) {
                     while (buffer.hasRemaining()) {
                         written = channel.write(buffer);
                         if (written > 0) {
                             netOutBytes += written;
                             NetSystem.getInstance().addNetOutBytes(written);
-
                         } else {
                             break;
                         }
@@ -371,13 +373,11 @@ public abstract class Connection implements ClosableConnection {
     }
 
     public void disableRead() {
-
         SelectionKey key = this.processKey;
         key.interestOps(key.interestOps() & OP_NOT_READ);
     }
 
     public void enableRead() {
-
         boolean needWakeup = false;
         try {
             SelectionKey key = this.processKey;
@@ -392,8 +392,51 @@ public abstract class Connection implements ClosableConnection {
     }
 
     void toHead(ByteBuffer byteBuffer) throws IOException {
+        if (downloadChannel != null) {
+            if (downloadPosition == downloadChannel.size()) {
+                downloadChannel.close();
+                downloadChannel = null;
+                downloadPosition = 0;
+                switch (taskType) {
+                    case DownloadWithUpload:
+                        this.uploadChannel.close();
+                        this.uploadFileSize = 0;
+                        taskType = Upload;
+                        return;
+                    case DownloadWithQuery:
+                        taskType = Query;
+                    case Upload:
+                    case Download:
+                        taskType = Query;
+                        break;
+                    default:
+                        throw new IOException("暂不支持");
+                }
+            } else {
+                switch (taskType) {
+                    case DownloadWithUpload:
+                    case DownloadWithQuery:
+                        taskType = Download;
+                        return;
+                    default:
+                        throw new IOException("暂不支持");
+                }
+            }
+        }
+        if (this.uploadChannel != null && uploadChannel.position() == uploadFileSize) {
+            uploadChannel.close();
+            uploadChannel = null;
+            uploadFileSize = 0;
+        }
+        length = 0;
+        offset = -10;
+        taskType = TaskType.Query;
         byteBuffer.limit(10).position(0);
-        channel.read(byteBuffer);
+        this.packetState = PacketState.header;
+    }
+
+    void toDownloadWithHead(ByteBuffer byteBuffer) throws IOException {
+        byteBuffer.limit(10).position(0);
         this.packetState = PacketState.header;
     }
 
@@ -466,13 +509,10 @@ public abstract class Connection implements ClosableConnection {
             case STORAGE_PROTO_CMD_QUERY_FILE_INFO:
                 return totalLen;
             case STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE:
-                this.isUpload = true;
                 return 15;//待修改
             case STORAGE_PROTO_CMD_APPEND_FILE:
-                this.isUpload = true;
                 return 15;
             case STORAGE_PROTO_CMD_MODIFY_FILE:
-                this.isUpload = true;
                 return 15;
             case STORAGE_PROTO_CMD_TRUNCATE_FILE:
                 return 16;
@@ -480,6 +520,7 @@ public abstract class Connection implements ClosableConnection {
                 return -1;
         }
     }
+
 
     /**
      * 异步读取数据,only nio thread call
@@ -490,9 +531,30 @@ public abstract class Connection implements ClosableConnection {
         if (this.isClosed) {
             return;
         }
-//        if (isUpload){
-//            this.fileChannel.transferFrom(channel,position,length)
-//        }
+        switch (taskType) {
+            case DownloadWithQuery:
+            case Query:
+                break;
+            case DownloadWithUpload:
+            case Upload: {
+                long uploadPosition = uploadChannel.position();
+                this.uploadChannel.transferFrom(channel, uploadPosition, uploadFileSize - uploadPosition);
+                if (uploadChannel.position() != uploadFileSize) {
+                    return;
+                } else {
+                    this.handler.handleEnd(this, readBuffer);
+                    toHead(readBuffer);
+                    return;
+                }
+            }
+            case Download: {
+                doWriteQueue();
+                toDownloadWithHead(readBuffer);
+                break;
+            }
+            default:
+                break;
+        }
         int got = 0;
         got = channel.read(readBuffer);
         offset += got;
@@ -514,7 +576,13 @@ public abstract class Connection implements ClosableConnection {
                         return;
                     } else {
                         this.handler.handleMetaData(this, readBuffer);
-                        toFix(readBuffer);
+                        if (this.uploadFileSize == 0) {
+                            toFix(readBuffer);
+                        }
+                        TaskType taskType = this.taskType;
+                        if (taskType == TaskType.Download) {
+                            return;
+                        }
                         continue;
                     }
                 }
@@ -532,8 +600,6 @@ public abstract class Connection implements ClosableConnection {
                     if (offset == length) {
                         this.handler.handleEnd(this, readBuffer);
                         toHead(readBuffer);
-                        length = 0;
-                        offset = -10;
                         continue;
                     } else if (readBuffer.hasRemaining()) {
                         return;
@@ -548,11 +614,28 @@ public abstract class Connection implements ClosableConnection {
         }
     }
 
-    protected abstract int parseProtocolPakage(ByteBufferArray readBufferArray, ByteBuffer readBuffer,
-                                               int readBufferOffset);
+    public void setTaskType(Connection.TaskType type) throws Exception {
+        Connection.TaskType taskType = this.taskType;
+        if (taskType == Download) {
+            switch (type) {
+                case Download:
+                    this.taskType = DownloadWithDownload;
+                    throw new Exception("暂不支持");
+                case Upload:
+                    this.taskType = DownloadWithUpload;
+                    return;
+                case Query:
+                    this.taskType = DownloadWithQuery;
+                    return;
+                default:
+                    break;
+            }
+        } else {
+            this.taskType = type;
+        }
+    }
 
     private void closeSocket() {
-
         if (channel != null) {
             boolean isSocketClosed = true;
             try {
@@ -614,12 +697,17 @@ public abstract class Connection implements ClosableConnection {
         return myBufferPool;
     }
 
+
     public enum State {
         connecting, connected, closing, closed, failed
     }
 
     public enum PacketState {
         header, fix, packet, metaData
+    }
+
+    public enum TaskType {
+        Query, Upload, Download, DownloadWithQuery, DownloadWithUpload, DownloadWithDownload
     }
 
     // 连接的方向，in表示是客户端连接过来的，out表示自己作为客户端去连接对端Sever

@@ -1,7 +1,7 @@
 package io.mybear;
 
 
-import io.mybear.storage.Storage;
+import io.mybear.storage.FdfsStoraged;
 import io.mybear.tracker.Tracker;
 import org.csource.fastdfs.*;
 
@@ -24,7 +24,7 @@ public class TestStorageProtoCmdDownloadFile {
         Thread.sleep(10);
         Thread storageServiceServer = new Thread(() -> {
             try {
-                Storage.main(args);
+                FdfsStoraged.main(args);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -50,10 +50,13 @@ public class TestStorageProtoCmdDownloadFile {
             StorageServer storageServer = null;
             StorageClient1 client = new StorageClient1(trackerServer, storageServer);
 
-            byte[] result = client.download_file(group_name, remote_filename, file_offset, download_bytes);
-            System.out.println("download result is: " + result.length);
-            int res = client.delete_file1("hello/filedId");
-            System.out.println("delete res:" + res);
+            for (int i = 0; i < 100; i++) {
+                byte[] result = client.download_file(group_name, remote_filename, file_offset, download_bytes);
+                System.out.println("download result is: " + result.length);
+            }
+
+//            int res = client.delete_file1("hello/filedId");
+//            System.out.println("delete res:" + res);
 
             trackerServer.close();
         } catch (Exception ex) {
