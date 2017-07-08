@@ -9,7 +9,7 @@ public class ApplicationContext {
     private static final String DEFAULT_CONFIG_FILE_NAME = "config.properties";
 
     private static final Properties properties = new Properties();
-    
+
     public ApplicationContext() throws IOException{
         URL url = getClass().getClassLoader().getResource(DEFAULT_CONFIG_FILE_NAME);
         properties.load(new FileInputStream(url.getFile()));
@@ -21,6 +21,7 @@ public class ApplicationContext {
             properties.load(new FileInputStream(url.getFile()));
         }
     }
+
 
     public static void setProperties(Properties properties) {
         ApplicationContext.properties = properties;
