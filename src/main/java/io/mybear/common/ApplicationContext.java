@@ -15,14 +15,19 @@ public class ApplicationContext {
         properties.load(new FileInputStream(url.getFile()));
     }
 
-    public ApplicationContext(String... filePath) throws IOException{
-        for(String path:filePath){
+    public ApplicationContext(String... filePath) throws IOException {
+        for (String path : filePath) {
             URL url = getClass().getClassLoader().getResource(path);
             properties.load(new FileInputStream(url.getFile()));
         }
     }
 
-    public String getProperty(String propertyName){
+
+    public static void setProperties(Properties properties) {
+        ApplicationContext.properties = properties;
+    }
+
+    public String getProperty(String propertyName) {
         return properties.getProperty(propertyName);
     }
 
