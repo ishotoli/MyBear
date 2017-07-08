@@ -8,7 +8,12 @@ import java.util.Properties;
 public class ApplicationContext {
     private static final String DEFAULT_CONFIG_FILE_NAME = "config.properties";
 
-    private static Properties properties;
+    private static final Properties properties = new Properties();
+    
+    public ApplicationContext() throws IOException{
+        URL url = getClass().getClassLoader().getResource(DEFAULT_CONFIG_FILE_NAME);
+        properties.load(new FileInputStream(url.getFile()));
+    }
 
     public ApplicationContext(String... filePath) throws IOException {
         for (String path : filePath) {
@@ -21,7 +26,7 @@ public class ApplicationContext {
         ApplicationContext.properties = properties;
     }
 
-    public static String getProperty(String propertyName) {
+    public String getProperty(String propertyName) {
         return properties.getProperty(propertyName);
     }
 
