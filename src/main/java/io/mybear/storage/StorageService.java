@@ -1,6 +1,9 @@
 package io.mybear.storage;
 
 import io.mybear.common.FastTaskInfo;
+import io.mybear.common.StorageClientInfo;
+import io.mybear.common.StorageFileContext;
+import io.mybear.common.StorageUploadInfo;
 import io.mybear.net2.ByteBufferArray;
 
 import java.nio.file.Path;
@@ -149,6 +152,18 @@ public class StorageService {
 
     void storageGetStorePath(final Path filename, final int filename_len, int[] sub_path_high, int[] sub_path_low) {
 
+    }
+
+    public static int storageGetFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize, int crc32, String fileName, int fileNameLen) {
+
+        int result;
+        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath().getStorePathIndex();
+        return 0;
+    }
+
+    public static int storageGenFilename() {
+
+        return 0;
     }
 
 }
