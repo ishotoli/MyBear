@@ -24,7 +24,7 @@ public class ApplicationContext {
 
 
     public static void setProperties(Properties properties) {
-        ApplicationContext.properties = properties;
+        //ApplicationContext.properties = properties;
     }
 
     public String getProperty(String propertyName) {

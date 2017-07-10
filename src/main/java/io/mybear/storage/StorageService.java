@@ -1,7 +1,14 @@
 package io.mybear.storage;
 
 import io.mybear.common.FastTaskInfo;
+import io.mybear.common.StorageClientInfo;
+import io.mybear.common.StorageFileContext;
+import io.mybear.common.StorageUploadInfo;
 import io.mybear.net2.ByteBufferArray;
+import io.mybear.storage.trunkMgr.TrunkShared;
+import io.mybear.tracker.FdfsSharedFunc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 
@@ -9,6 +16,7 @@ import java.nio.file.Path;
  * Created by jamie on 2017/6/21.
  */
 public class StorageService {
+    private final static Logger log = LoggerFactory.getLogger(StorageService.class);
     public static final String ACCESS_LOG_ACTION_UPLOAD_FILE = "upload";
     public static final String ACCESS_LOG_ACTION_DOWNLOAD_FILE = "download";
     public static final String ACCESS_LOG_ACTION_DELETE_FILE = "delete";
@@ -149,6 +157,58 @@ public class StorageService {
 
     void storageGetStorePath(final Path filename, final int filename_len, int[] sub_path_high, int[] sub_path_low) {
 
+    }
+
+    /**
+     * 获取文件名
+     *
+     * @param pClientInfo
+     * @param pFileContext
+     * @param fileSize
+     * @param crc32
+     * @param fileName
+     * @param fileNameLen
+     * @return
+     */
+    public static int storageGetFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize, int crc32, String fileName, int fileNameLen) {
+
+        int result;
+        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath().getStorePathIndex();
+        String filePathName = null;
+        for (int i = 0; i < 10; i++) {
+            if ((result = storageGenFilename(pClientInfo, pFileContext, fileSize, crc32, fileNameLen)) != 0) {
+                return result;
+            }
+            filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
+            if (!FdfsSharedFunc.fileExists(filePathName)) {
+                pFileContext.setFileName(filePathName);
+                break;
+            }
+            filePathName = "";
+        }
+        if (filePathName == null || "".equals(filePathName)) {
+            log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName, "Can't generate uniq filename");
+            return -1;
+        }
+        return 0;
+    }
+
+    /**
+     * 生成文件名 storage_service#storage_gen_filename
+     * @param pClientInfo
+     * @param pFileContext
+     * @param fileSize
+     * @param crc32
+     * @param fileNameLen
+     * @return
+     */
+    public static int storageGenFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize, int crc32, int fileNameLen) {
+        char[] buff = new char[4 * 5];
+        char[] encoded = new char[4 * 8 + 1];
+        int len;
+        long maskedFileSize;
+
+        return 0;
     }
 
 }
