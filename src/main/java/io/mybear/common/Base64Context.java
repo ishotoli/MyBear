@@ -15,7 +15,7 @@ public class Base64Context {
     /**
      * max chars per line, excluding line_separator.  A multiple of 4.
      */
-    private int line_length;
+    private int lineLength;
     /**
      * letter of the alphabet used to encode binary values 0..63
      */
@@ -35,8 +35,8 @@ public class Base64Context {
         return lineSepLen;
     }
 
-    public int getLine_length() {
-        return line_length;
+    public int getLineLength() {
+        return lineLength;
     }
 
     public char[] getValueToChar() {
@@ -55,8 +55,8 @@ public class Base64Context {
         this.lineSepLen = lineSepLen;
     }
 
-    public void setLine_length(int line_length) {
-        this.line_length = line_length;
+    public void setLineLength(int lineLength) {
+        this.lineLength = lineLength;
     }
 
     public void setPadCh(int padCh) {
@@ -68,7 +68,7 @@ public class Base64Context {
         return "Base64Context{" +
             "lineSeparator=" + Arrays.toString(lineSeparator) +
             ", lineSepLen=" + lineSepLen +
-            ", line_length=" + line_length +
+            ", lineLength=" + lineLength +
             ", valueToChar=" + Arrays.toString(valueToChar) +
             ", charToValue=" + Arrays.toString(charToValue) +
             ", padCh=" + padCh +

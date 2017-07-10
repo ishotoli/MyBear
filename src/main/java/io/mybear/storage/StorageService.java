@@ -1,10 +1,6 @@
 package io.mybear.storage;
 
-import io.mybear.common.FastTaskInfo;
-import io.mybear.common.FdfsTrunkFullInfo;
-import io.mybear.common.StorageClientInfo;
-import io.mybear.common.StorageFileContext;
-import io.mybear.common.StorageUploadInfo;
+import io.mybear.common.*;
 import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.utils.Base64;
 import io.mybear.net2.ByteBufferArray;
@@ -12,6 +8,7 @@ import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.nio.file.Path;
 import java.util.Random;
 
@@ -180,8 +177,8 @@ public class StorageService {
                                          int crc32, String fileName, int fileNameLen) {
 
         int result;
-        int storePathIndex = ((StorageUploadInfo)pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
-            .getStorePathIndex();
+        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
+                .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
             if ((result = storageGenFilename(pClientInfo, pFileContext, fileSize, crc32, fileNameLen)) != 0) {
@@ -196,7 +193,7 @@ public class StorageService {
         }
         if (filePathName == null || "".equals(filePathName)) {
             log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName,
-                "Can't generate uniq filename");
+                    "Can't generate uniq filename");
             return -1;
         }
         return 0;
@@ -218,8 +215,8 @@ public class StorageService {
         char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
         int len;
         long maskedFileSize = 0L;
-        StorageUploadInfo storageUploadInfo = (StorageUploadInfo)pFileContext.getExtraInfo();
-        FdfsTrunkFullInfo fdfsTrunkFullInfo = storageUploadInfo.getTrunkInfo();
+        StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pFileContext.getExtraInfo();
+        FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
         //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
         //int2buff(htonl(g_server_id_in_filename),buff);
         int2buff(0, buff);
@@ -231,16 +228,30 @@ public class StorageService {
         }
         long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
         int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
-        //Base64.base64EncodeEx();
+        Base64Context base64Context = new Base64Context();
+        Base64.base64EncodeEx(base64Context,buff,SizeOfConstant.SIZE_OF_INT*5,encoded,fileNameLen,false);
+        if (!storageUploadInfo.isIfSubPathAlloced())
+        {
+            storageGetStorePath(encoded, fileNameLen,pTrunkInfo.getPath());
+            storageUploadInfo.setIfSubPathAlloced(true);
+        }
         return 0;
     }
 
     private static long combineRandFileSize(long size, long maskedFileSize) {
-        Random random = new Random();
-        //@TODO rand() 方法
-        int r = (random.nextInt() & 0x007FFFFF) | 0x80000000;
-        maskedFileSize = (((long)r) << 32) | size;
+        Random random = new Random(32767);
+        int r = (random.nextInt() >>> 26 & 0x007FFFFF) | 0x80000000;
+        maskedFileSize = (((long) r) << 32) | size;
         return maskedFileSize;
     }
 
+    /**
+     * 获取文件路径
+     * @param filename
+     * @param fileNameLen
+     * @param trunkPathInfo
+     */
+    private static void storageGetStorePath(char[] filename, int fileNameLen, FDFSTrunkPathInfo trunkPathInfo){
+
+    }
 }
