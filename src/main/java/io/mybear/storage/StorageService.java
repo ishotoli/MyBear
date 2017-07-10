@@ -1,16 +1,21 @@
 package io.mybear.storage;
 
 import io.mybear.common.FastTaskInfo;
+import io.mybear.common.FdfsTrunkFullInfo;
 import io.mybear.common.StorageClientInfo;
 import io.mybear.common.StorageFileContext;
 import io.mybear.common.StorageUploadInfo;
+import io.mybear.common.constants.SizeOfConstant;
+import io.mybear.common.utils.Base64;
 import io.mybear.net2.ByteBufferArray;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
+import java.util.Random;
+
+import static io.mybear.common.utils.BasicTypeConversionUtil.*;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -65,54 +70,55 @@ public class StorageService {
     }
 
     public static void STORAGE_PROTO_CMD_UPLOAD_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
-//        long len = taskInfo.getOffset();
-//        System.out.println("len:" + len);
-//        System.out.println("taskInfo:" + taskInfo.getLength());
-//
-//        if (taskInfo.getLength() < (len)) {
-//            if (h == false) {
-//                h = true;
-//            } else {
-//                return;
-//            }
-//
-//            try {
-//                Random rand = new Random();
-//                Path file = Paths.get("d:/" + Integer.valueOf(rand.nextInt()).toString().substring(1, 4) + ".jar");
-//                Files.createFile(file);
-//                ByteChannel byteChannel = Files.newByteChannel(file, StandardOpenOption.APPEND);
-//                ByteBuffer byteBuffer = byteBufferArray.getBlock(0);
-//                byteBuffer.limit(byteBuffer.position());
-//
-//                byteBuffer.position(25);
-//                byteChannel.write(byteBuffer);
-//                for (int i = 1; i < byteBufferArray.getBlockCount(); i++) {
-//                    byteBuffer = byteBufferArray.getBlock(i);
-//                    byteBuffer.flip();
-//                    byteChannel.write(byteBuffer);
-//                }
-//                byteChannel.close();
-//
-//////                ByteBufferArray r = taskInfo.getMyBufferPool().allocate();
-////                ByteBuffer res = r.addNewBuffer();
-////                res.clear();
-////                res.position(8);
-////                setStorageCMDResp(res);
-////                res.position(9);
-////                res.put((byte) 0);
-////                setGroupName(res, "Hello");
-////                setGroupName(res, file.toString());
-////                int limit = res.position();
-////                int pkgLen = limit - 10;
-////                res.position(0);
-////                res.putLong(0, pkgLen);
-////                res.position(limit);
-////                taskInfo.write(r);
-//
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
+        //        long len = taskInfo.getOffset();
+        //        System.out.println("len:" + len);
+        //        System.out.println("taskInfo:" + taskInfo.getLength());
+        //
+        //        if (taskInfo.getLength() < (len)) {
+        //            if (h == false) {
+        //                h = true;
+        //            } else {
+        //                return;
+        //            }
+        //
+        //            try {
+        //                Random rand = new Random();
+        //                Path file = Paths.get("d:/" + Integer.valueOf(rand.nextInt()).toString().substring(1, 4) +
+        // ".jar");
+        //                Files.createFile(file);
+        //                ByteChannel byteChannel = Files.newByteChannel(file, StandardOpenOption.APPEND);
+        //                ByteBuffer byteBuffer = byteBufferArray.getBlock(0);
+        //                byteBuffer.limit(byteBuffer.position());
+        //
+        //                byteBuffer.position(25);
+        //                byteChannel.write(byteBuffer);
+        //                for (int i = 1; i < byteBufferArray.getBlockCount(); i++) {
+        //                    byteBuffer = byteBufferArray.getBlock(i);
+        //                    byteBuffer.flip();
+        //                    byteChannel.write(byteBuffer);
+        //                }
+        //                byteChannel.close();
+        //
+        //////                ByteBufferArray r = taskInfo.getMyBufferPool().allocate();
+        ////                ByteBuffer res = r.addNewBuffer();
+        ////                res.clear();
+        ////                res.position(8);
+        ////                setStorageCMDResp(res);
+        ////                res.position(9);
+        ////                res.put((byte) 0);
+        ////                setGroupName(res, "Hello");
+        ////                setGroupName(res, file.toString());
+        ////                int limit = res.position();
+        ////                int pkgLen = limit - 10;
+        ////                res.position(0);
+        ////                res.putLong(0, pkgLen);
+        ////                res.position(limit);
+        ////                taskInfo.write(r);
+        //
+        //            } catch (Exception e) {
+        //                e.printStackTrace();
+        //            }
+        //        }
     }
 
     public static void STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
@@ -170,10 +176,12 @@ public class StorageService {
      * @param fileNameLen
      * @return
      */
-    public static int storageGetFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize, int crc32, String fileName, int fileNameLen) {
+    public static int storageGetFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize,
+                                         int crc32, String fileName, int fileNameLen) {
 
         int result;
-        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath().getStorePathIndex();
+        int storePathIndex = ((StorageUploadInfo)pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
+            .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
             if ((result = storageGenFilename(pClientInfo, pFileContext, fileSize, crc32, fileNameLen)) != 0) {
@@ -187,7 +195,8 @@ public class StorageService {
             filePathName = "";
         }
         if (filePathName == null || "".equals(filePathName)) {
-            log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName, "Can't generate uniq filename");
+            log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName,
+                "Can't generate uniq filename");
             return -1;
         }
         return 0;
@@ -195,6 +204,7 @@ public class StorageService {
 
     /**
      * 生成文件名 storage_service#storage_gen_filename
+     *
      * @param pClientInfo
      * @param pFileContext
      * @param fileSize
@@ -202,13 +212,35 @@ public class StorageService {
      * @param fileNameLen
      * @return
      */
-    public static int storageGenFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize, int crc32, int fileNameLen) {
-        char[] buff = new char[4 * 5];
-        char[] encoded = new char[4 * 8 + 1];
+    public static int storageGenFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize,
+                                         int crc32, int fileNameLen) {
+        char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
+        char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
         int len;
-        long maskedFileSize;
-
+        long maskedFileSize = 0L;
+        StorageUploadInfo storageUploadInfo = (StorageUploadInfo)pFileContext.getExtraInfo();
+        FdfsTrunkFullInfo fdfsTrunkFullInfo = storageUploadInfo.getTrunkInfo();
+        //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
+        //int2buff(htonl(g_server_id_in_filename),buff);
+        int2buff(0, buff);
+        int2buff(storageUploadInfo.getStartTime(), buff, SizeOfConstant.SIZE_OF_INT);
+        if ((fileSize >> 32) != 0) {
+            maskedFileSize = fileSize;
+        } else {
+            maskedFileSize = combineRandFileSize(fileSize, maskedFileSize);
+        }
+        long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
+        int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
+        //Base64.base64EncodeEx();
         return 0;
+    }
+
+    private static long combineRandFileSize(long size, long maskedFileSize) {
+        Random random = new Random();
+        //@TODO rand() 方法
+        int r = (random.nextInt() & 0x007FFFFF) | 0x80000000;
+        maskedFileSize = (((long)r) << 32) | size;
+        return maskedFileSize;
     }
 
 }
