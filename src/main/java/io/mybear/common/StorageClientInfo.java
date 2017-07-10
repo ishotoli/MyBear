@@ -1,5 +1,6 @@
 package io.mybear.common;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -7,9 +8,10 @@ import java.util.function.Function;
 /**
  * Created by jamie on 2017/6/22.
  */
-public class StorageClientInfo {
+public class StorageClientInfo implements Serializable{
 
     final static int FDFS_STORAGE_ID_MAX_SIZE = 16;
+    private static final long serialVersionUID = -832774976898639721L;
     /**
      * nio线程的索引
      */

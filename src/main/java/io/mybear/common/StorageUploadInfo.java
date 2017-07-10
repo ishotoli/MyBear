@@ -1,5 +1,6 @@
 package io.mybear.common;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import static io.mybear.tracker.TrackerTypes.FDFS_FILE_PREFIX_MAX_LEN;
@@ -9,7 +10,8 @@ import static io.mybear.common.FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN;
 /**
  * Created by jamie on 2017/6/22.
  */
-public class StorageUploadInfo {
+public class StorageUploadInfo implements Serializable{
+    private static final long serialVersionUID = 3125803375110901181L;
     /**
      * if upload generate filename
      */

@@ -1,9 +1,12 @@
 package io.mybear.common;
 
+import java.io.Serializable;
+
 /**
  * Created by zkn on 2017/7/10.
  */
-public class FdfsTrunkFullInfo {
+public class FdfsTrunkFullInfo implements Serializable{
+    private static final long serialVersionUID = 7265761421190943719L;
     /**
      * //normal or hold
      */
