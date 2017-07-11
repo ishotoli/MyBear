@@ -31,6 +31,7 @@ public class Base64 {
         char[] szPad = new char[3];
         int k;
         int loop;
+        int flag = 0;
         if (nSrcLen <= 0) {
             dest = new char[0];
             destLen = 0;
@@ -69,8 +70,9 @@ public class Base64 {
                 linePos += 4;
                 if (linePos > base64Context.getLineLength()) {
                     if (base64Context.getLineLength() != 0) {
-                        System.arraycopy(base64Context.getLineSeparator(), 0, pDest, 0, base64Context.getLineSepLen());
+                        System.arraycopy(base64Context.getLineSeparator(), 0, pDest, flag, base64Context.getLineSepLen());
                         //pDest += base64Context.getLineSepLen();
+                        flag += base64Context.getLineSepLen();
                     }
                     linePos = 4;
                 }
@@ -88,10 +90,10 @@ public class Base64 {
                 c0 = combined & 0x3f;
                 // Translate into the equivalent alpha character
                 // emitting them in big-endian order.
-                pDest[base64Context.getLineSepLen()] = (char) base64Context.getCharToValue()[c0];
-                pDest[base64Context.getLineSepLen() + 1] = (char) base64Context.getCharToValue()[c1];
-                pDest[base64Context.getLineSepLen() + 2] = (char) base64Context.getCharToValue()[c2];
-                pDest[base64Context.getLineSepLen() + 3] = (char) base64Context.getCharToValue()[c3];
+                pDest[flag++] = (char) base64Context.getCharToValue()[c0];
+                pDest[flag++] = (char) base64Context.getCharToValue()[c1];
+                pDest[flag++] = (char) base64Context.getCharToValue()[c2];
+                pDest[flag++] = (char) base64Context.getCharToValue()[c3];
             }
         }
 

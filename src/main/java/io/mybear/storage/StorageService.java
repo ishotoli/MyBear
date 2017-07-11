@@ -3,14 +3,17 @@ package io.mybear.storage;
 import io.mybear.common.*;
 import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.utils.Base64;
+import io.mybear.common.utils.HashUtil;
 import io.mybear.net2.ByteBufferArray;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
+import io.mybear.tracker.TrackerTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static io.mybear.common.utils.BasicTypeConversionUtil.*;
 
@@ -29,6 +32,7 @@ public class StorageService {
     public static final String ACCESS_LOG_ACTION_TRUNCATE_FILE = "truncate";
     public static final String ACCESS_LOG_ACTION_QUERY_FILE = "status";
     static boolean h = false;
+    private static final ReentrantLock lock = new ReentrantLock();
 
     public static void STORAGE_nio_notify(FastTaskInfo pTask) {
 
@@ -229,10 +233,9 @@ public class StorageService {
         long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
         int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
         Base64Context base64Context = new Base64Context();
-        Base64.base64EncodeEx(base64Context,buff,SizeOfConstant.SIZE_OF_INT*5,encoded,fileNameLen,false);
-        if (!storageUploadInfo.isIfSubPathAlloced())
-        {
-            storageGetStorePath(encoded, fileNameLen,pTrunkInfo.getPath());
+        Base64.base64EncodeEx(base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5, encoded, fileNameLen, false);
+        if (!storageUploadInfo.isIfSubPathAlloced()) {
+            storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
             storageUploadInfo.setIfSubPathAlloced(true);
         }
         return 0;
@@ -247,11 +250,39 @@ public class StorageService {
 
     /**
      * 获取文件路径
+     *
      * @param filename
      * @param fileNameLen
      * @param trunkPathInfo
      */
-    private static void storageGetStorePath(char[] filename, int fileNameLen, FDFSTrunkPathInfo trunkPathInfo){
-
+    private static void storageGetStorePath(char[] filename, int fileNameLen, FDFSTrunkPathInfo trunkPathInfo) {
+        int n;
+        if (StorageGlobal.g_file_distribute_path_mode == TrackerTypes.FDFS_FILE_DIST_PATH_ROUND_ROBIN) {
+            trunkPathInfo.setSubPathHigh(StorageGlobal.g_dist_path_index_high);
+            trunkPathInfo.setSubPathLow(StorageGlobal.g_dist_path_index_low);
+            if (++StorageGlobal.g_dist_write_file_count >= StorageGlobal.g_file_distribute_rotate_count) {
+                StorageGlobal.g_dist_write_file_count = 0;
+                lock.lock();
+                try {
+                    ++StorageGlobal.g_dist_path_index_low;
+                    if (StorageGlobal.g_dist_path_index_low >= StorageGlobal.g_subdir_count_per_path) {  //rotate
+                        StorageGlobal.g_dist_path_index_high++;
+                        if (StorageGlobal.g_dist_path_index_high >= StorageGlobal.g_subdir_count_per_path)  //rotate
+                        {
+                            StorageGlobal.g_dist_path_index_high = 0;
+                        }
+                        StorageGlobal.g_dist_path_index_low = 0;
+                    }
+                    ++StorageGlobal.g_stat_change_count;
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }  //random
+        else {
+            n = HashUtil.PJWHash(filename, fileNameLen) % (1 << 16);
+            trunkPathInfo.setSubPathHigh(((n >> 8) & 0xFF) % StorageGlobal.g_subdir_count_per_path);
+            trunkPathInfo.setSubPathLow((n & 0xFF) % StorageGlobal.g_subdir_count_per_path);
+        }
     }
 }
