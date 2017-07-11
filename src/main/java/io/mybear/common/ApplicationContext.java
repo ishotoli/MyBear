@@ -10,9 +10,10 @@ public class ApplicationContext {
 
     private static final Properties properties = new Properties();
 
+    private static ApplicationContext INSTANCE;
+
     public ApplicationContext() throws IOException{
-        URL url = getClass().getClassLoader().getResource(DEFAULT_CONFIG_FILE_NAME);
-        properties.load(new FileInputStream(url.getFile()));
+        this(DEFAULT_CONFIG_FILE_NAME);
     }
 
     public ApplicationContext(String... filePath) throws IOException {
@@ -20,15 +21,24 @@ public class ApplicationContext {
             URL url = getClass().getClassLoader().getResource(path);
             properties.load(new FileInputStream(url.getFile()));
         }
+
+        INSTANCE = this;
     }
 
-
-    public static void setProperties(Properties properties) {
-        ApplicationContext.properties = properties;
+    public static ApplicationContext getInstance(){
+        return INSTANCE;
     }
 
     public String getProperty(String propertyName) {
         return properties.getProperty(propertyName);
+    }
+
+    public int getIntValue(String propertyName, int defaultValue){
+        try {
+            return Integer.parseInt(properties.getProperty(propertyName));
+        }catch (NumberFormatException e){
+            return defaultValue;
+        }
     }
 
     @Override
