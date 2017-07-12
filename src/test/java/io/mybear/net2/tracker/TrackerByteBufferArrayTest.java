@@ -96,29 +96,66 @@ public class TrackerByteBufferArrayTest {
         Assert.assertEquals(l4, l);
     }
 
+    @Test
+    public void testReadInt(){
+        ByteBuffer buf1 = byteBufferArray.addNewBuffer();
+        ByteBuffer buf2 = byteBufferArray.addNewBuffer();
+
+        // 占用两格测试一个int存储在两格buf中的情况
+        buf1.put((byte)0);
+        buf1.put((byte)0);
+
+        int i0 = 546748545;
+        putInt(buf1, i0, 0);
+        int i1 = 321546547;
+        putInt(buf1, i1, 0);
+        int i2 = 456735415;
+        putInt(buf1, i2, 0);
+        int i3 = 321546547;
+        putInt(buf1, i3, 0);
+        int i4 = 354313121;
+        putInt(buf1, i4, 0);
+        putInt(buf2, i4, 2);
+        int i5 = 687845451;
+        putInt(buf2, i5, 0);
+        int i6 = 321535465;
+        putInt(buf2, i6, 0);
+        int i7 = 545481515;
+        putInt(buf2, i7, 0);
+        int i8 = 984436511;
+        putInt(buf2, i8, 0);
+        logger.debug("buf1: {}", buf1.array());
+        logger.debug("buf2: {}", buf2.array());
+
+        int i = byteBufferArray.readInt(2);
+        Assert.assertEquals(i0, i);
+        i = byteBufferArray.readInt(6);
+        Assert.assertEquals(i1, i);
+        i = byteBufferArray.readInt(10);
+        Assert.assertEquals(i2, i);
+        i = byteBufferArray.readInt(14);
+        Assert.assertEquals(i3, i);
+        i = byteBufferArray.readInt(18);
+        logger.debug("i4: {}", Integer.toBinaryString(i4));
+        logger.debug("i: {}", Integer.toBinaryString(i));
+        Assert.assertEquals(i4, i);
+        i = byteBufferArray.readInt(22);
+        Assert.assertEquals(i5, i);
+        i = byteBufferArray.readInt(26);
+        Assert.assertEquals(i6, i);
+        i = byteBufferArray.readInt(30);
+        Assert.assertEquals(i7, i);
+        i = byteBufferArray.readInt(34);
+        Assert.assertEquals(i8, i);
+    }
 
     private void putLong(ByteBuffer buf, long l, int offset){
-        byte[] bytes = long2byte(l);
+        byte[] bytes = NumberUtil.long2byte(l);
         IntStream.range(0, 8).filter((i)->buf.hasRemaining() && i >= offset).forEach(i->buf.put(bytes[i]));
     }
 
-    /**
-     * long to bytes (big endian)
-     *
-     * @param num 待转换数字
-     * @return bytes
-     */
-    private static byte[] long2byte(long num){
-        byte[] result = new byte[8];
-        result[0] = (byte)((num >> 56) & 0xFFL);
-        result[1] = (byte)((num >> 48) & 0xFFL);
-        result[2] = (byte)((num >> 40) & 0xFFL);
-        result[3] = (byte)((num >> 32) & 0xFFL);
-        result[4] = (byte)((num >> 24) & 0xFFL);
-        result[5] = (byte)((num >> 16) & 0xFFL);
-        result[6] = (byte)((num >> 8) & 0xFFL);
-        result[7] = (byte)(num & 0xFFL);
-
-        return result;
+    private void putInt(ByteBuffer buf, int num, int offset){
+        byte[] bytes = NumberUtil.int2byte(num);
+        IntStream.range(0, 4).filter((i)->buf.hasRemaining() && i >= offset).forEach(i->buf.put(bytes[i]));
     }
 }

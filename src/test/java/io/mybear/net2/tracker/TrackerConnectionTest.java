@@ -1,11 +1,13 @@
 package io.mybear.net2.tracker;
 
 import io.mybear.common.ApplicationContext;
+import io.mybear.tracker.TrackerProto;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import junit.framework.TestCase;
 import org.easymock.EasyMock;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +17,7 @@ public class TrackerConnectionTest extends TestCase {
     private TrackerConnection connection;
     private SocketChannel mockChannel;
     private TrackerByteBufferArray mockBufferArray;
+    private TrackerNioHandler mockHandler;
 
     @Override
     protected void setUp() throws Exception {
@@ -22,7 +25,9 @@ public class TrackerConnectionTest extends TestCase {
 
         mockChannel = EasyMock.createMock(SocketChannel.class);
         connection = new TrackerConnection(mockChannel);
-        connection.setHandler(new TrackerNioHandler());
+
+        mockHandler = EasyMock.createMock(TrackerNioHandler.class);
+        connection.setHandler(mockHandler);
 
         mockBufferArray = EasyMock.createMock(TrackerByteBufferArray.class);
         connection.readBufferArray = mockBufferArray;
@@ -43,22 +48,58 @@ public class TrackerConnectionTest extends TestCase {
      * 测试场景
      * [buffer1-start,package1-start]        [package1-end,buffer1-position]         [buffer1-limit]
      */
-    public void testParseProtocolPakage0(){
-        ByteBuffer readBuffer = ByteBuffer.allocate(20);
+    public void testAsynRead0() throws IOException{
+        long pkgLen = 5;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(20);
 
-        long readBufferOffset = 0l;
-        connection.parseProtocolPakage(mockBufferArray, readBuffer, readBufferOffset);
+        EasyMock.expect(mockBufferArray.getLastByteBuffer()).andReturn(byteBuffer);
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen
+                + TrackerMessage.PACKAGE_HEADER_SIZE);
+        EasyMock.expect(mockBufferArray.readLong(0)).andReturn(pkgLen);
+        EasyMock.expect(mockBufferArray.readByte(8)).andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第二个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen
+            + TrackerMessage.PACKAGE_HEADER_SIZE);
+
+        // 回收空间
+        mockBufferArray.compact(15);
+        EasyMock.expectLastCall();
+        EasyMock.replay(mockBufferArray);
+
+        EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
+        EasyMock.replay(mockChannel);
+
+        connection.asynRead();
     }
 
     /**
      * 测试场景
      * [buffer1-start,package1-start]                  [package1-end,buffer1-position,buffer1-limit]
      */
-    public void testParseProtocolPakage1(){
-        ByteBuffer readBuffer = ByteBuffer.allocate(20);
+    public void testAsynRead1() throws IOException{
+        long pkgLen = 10;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(20);
 
-        long readBufferOffset = 0l;
-        connection.parseProtocolPakage(mockBufferArray, readBuffer, readBufferOffset);
+        EasyMock.expect(mockBufferArray.getLastByteBuffer()).andReturn(byteBuffer);
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen
+            + TrackerMessage.PACKAGE_HEADER_SIZE);
+        EasyMock.expect(mockBufferArray.readLong(0)).andReturn(pkgLen);
+        EasyMock.expect(mockBufferArray.readByte(8)).andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第二个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen
+            + TrackerMessage.PACKAGE_HEADER_SIZE);
+
+        // 回收空间
+        mockBufferArray.compact(20);
+        EasyMock.expectLastCall();
+        EasyMock.replay(mockBufferArray);
+
+        EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
+        EasyMock.replay(mockChannel);
+
+        connection.asynRead();
     }
 
     /**
@@ -66,11 +107,38 @@ public class TrackerConnectionTest extends TestCase {
      * [buffer1-start,package1-start]  [package1-end][package2-start]  [buffer1-position,buffer1-limit]
      * [buffer2-start]                 [package2-end, buffer2-position]              [buffer2-limit]
      */
-    public void testParseProtocolPakage2(){
-        ByteBuffer readBuffer = ByteBuffer.allocate(20);
+    public void testAsynRead2() throws IOException{
+        long pkgLen1 = 5;
+        long pkgLen2 = 10;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(20);
 
-        long readBufferOffset = 0l;
-        connection.parseProtocolPakage(mockBufferArray, readBuffer, readBufferOffset);
+        EasyMock.expect(mockBufferArray.getLastByteBuffer()).andReturn(byteBuffer);
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen1 + pkgLen2
+            + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+        EasyMock.expect(mockBufferArray.readLong(0)).andReturn(pkgLen1);
+        EasyMock.expect(mockBufferArray.readByte(8)).andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第二个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen1 + pkgLen2
+            + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+        EasyMock.expect(mockBufferArray.readLong(pkgLen1 + TrackerMessage.PACKAGE_HEADER_SIZE))
+                .andReturn(pkgLen2);
+        EasyMock.expect(mockBufferArray.readByte(pkgLen1 + TrackerMessage.PACKAGE_HEADER_SIZE + 8))
+                .andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第三个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen1 + pkgLen2
+            + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+
+        // 回收空间
+        mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+        EasyMock.expectLastCall();
+        EasyMock.replay(mockBufferArray);
+
+        EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
+        EasyMock.replay(mockChannel);
+
+        connection.asynRead();
     }
 
     /**
@@ -78,11 +146,41 @@ public class TrackerConnectionTest extends TestCase {
      * [buffer1-start,package1-start]  [package1-end][package2-start]  [buffer1-position,buffer1-limit]
      * [buffer2-start]     [package2-end, package3-start]     [buffer2-position]     [buffer1-limit]
      */
-    public void testParseProtocolPakage3(){
-        ByteBuffer readBuffer = ByteBuffer.allocate(20);
+    public void testAsynRead3() throws IOException{
+        long pkgLen1 = 5;
+        long pkgLen2 = 10;
+        long pkgLen3 = 10;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(20);
 
-        long readBufferOffset = 0l;
-        connection.parseProtocolPakage(mockBufferArray, readBuffer, readBufferOffset);
+        long total = pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2 + 11;
+        EasyMock.expect(mockBufferArray.getLastByteBuffer()).andReturn(byteBuffer);
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(total);
+        EasyMock.expect(mockBufferArray.readLong(0)).andReturn(pkgLen1);
+        EasyMock.expect(mockBufferArray.readByte(8)).andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第二个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(total);
+        EasyMock.expect(mockBufferArray.readLong(pkgLen1 + TrackerMessage.PACKAGE_HEADER_SIZE))
+            .andReturn(pkgLen2);
+        EasyMock.expect(mockBufferArray.readByte(pkgLen1 + TrackerMessage.PACKAGE_HEADER_SIZE + 8))
+            .andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第三个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(total);
+        EasyMock.expect(mockBufferArray.readLong(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2))
+            .andReturn(pkgLen3);
+        EasyMock.expect(mockBufferArray.readByte(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2 + 8))
+            .andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 回收空间
+        mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+        EasyMock.expectLastCall();
+        EasyMock.replay(mockBufferArray);
+
+        EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
+        EasyMock.replay(mockChannel);
+
+        connection.asynRead();
     }
 
     /**
@@ -91,10 +189,36 @@ public class TrackerConnectionTest extends TestCase {
      * [buffer2-start]        [package1-end, package2-start]        [buffer2-position,buffer2-limit]
      * [buffer3-start]                [package2-end, buffer3-position]               [buffer3-limit]
      */
-    public void testParseProtocolPakage4(){
-        ByteBuffer readBuffer = ByteBuffer.allocate(20);
+    public void testAsynRead4() throws IOException{
+        long pkgLen1 = 15;
+        long pkgLen2 = 10;
+        ByteBuffer byteBuffer = ByteBuffer.allocate(20);
 
-        long readBufferOffset = 0l;
-        connection.parseProtocolPakage(mockBufferArray, readBuffer, readBufferOffset);
+        long total = pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2;
+        EasyMock.expect(mockBufferArray.getLastByteBuffer()).andReturn(byteBuffer);
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(total);
+        EasyMock.expect(mockBufferArray.readLong(0)).andReturn(pkgLen1);
+        EasyMock.expect(mockBufferArray.readByte(8)).andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第二个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(total);
+        EasyMock.expect(mockBufferArray.readLong(pkgLen1 + TrackerMessage.PACKAGE_HEADER_SIZE))
+            .andReturn(pkgLen2);
+        EasyMock.expect(mockBufferArray.readByte(pkgLen1 + TrackerMessage.PACKAGE_HEADER_SIZE + 8))
+            .andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
+
+        // 第三个报文调用
+        EasyMock.expect(mockBufferArray.getTotalBytesLength()).andReturn(pkgLen1 + pkgLen2
+            + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+
+        // 回收空间
+        mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
+        EasyMock.expectLastCall();
+        EasyMock.replay(mockBufferArray);
+
+        EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
+        EasyMock.replay(mockChannel);
+
+        connection.asynRead();
     }
 }

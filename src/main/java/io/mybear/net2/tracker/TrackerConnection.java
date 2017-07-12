@@ -3,19 +3,21 @@ package io.mybear.net2.tracker;
 import io.mybear.common.ApplicationContext;
 import io.mybear.net2.Connection;
 import io.mybear.net2.ReactorBufferPool;
+import io.mybear.tracker.types.TrackerClientInfo;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 public class TrackerConnection extends Connection {
-    public static final int PACKAGE_HEADER_SIZE = 10;
-    public static final int PACKAGE_LENGTH_SIZE = 8;
-    public static final int PACKAGE_CMD_SIZE = 1;
-    public static final int PACKAGE_STATE_SIZE = 1;
 
     private long readBufferOffset;
+
     protected TrackerByteBufferArray readBufferArray;
+
+    private TrackerClientInfo clientInfo;
+
+    private TrackerMessage message = new TrackerMessage();
 
     public TrackerConnection(SocketChannel channel) {
         super(channel);
@@ -51,8 +53,9 @@ public class TrackerConnection extends Connection {
                     break;
                 }
                 case -1: {
-                    readAgain = false;
-                    break;
+//                    readAgain = false;
+//                    break;
+                    return;
                 }
                 default: {// readed some bytes
 
@@ -61,110 +64,66 @@ public class TrackerConnection extends Connection {
                         readAgain = false;
                     }
 
-                    // 子类负责解析报文
-                    readBufferOffset = parseProtocolPakage(this.readBufferArray, readBuffer, readBufferOffset);
-                    // 解析后处理
-                    ((TrackerNioHandler)handler).handle(this, this.readBufferArray);
+                    // 循环处理读到的所有报文
+                    long newOffset = 0;
+                    do{
+                        if(newOffset > 0){
+                            readBufferOffset = newOffset;
+                        }
+
+                        message.setData(readBufferArray);
+                        message.setPosition(readBufferOffset);
+                        newOffset = parseProtocolPakage();
+
+                        // 解析后处理
+                        if(newOffset > readBufferOffset) {
+                            ((TrackerNioHandler) handler).handle(this, this.message);
+                        }
+                    }while(newOffset > readBufferOffset);
+                    readBufferOffset = newOffset;
+
+                    // 报文处理完成后，腾出readBufferArray空间。
+                    readBufferArray.compact(readBufferOffset);
                 }
             }
-        }
-        if (got == -1) {
-            return;
-        }
-        if (readBufferArray.getCurPacageLength() > 0) {
-            // pkgTotalCount+=readBufferArray
-            // pkgTotalSize += length;
-            // todo 把完整解析的数据报文拿出来供处理
-
         }
     }
 
-    protected long parseProtocolPakage(TrackerByteBufferArray bufferArray, ByteBuffer readBuffer,
-        long readBufferOffset){
-        long offset = readBufferOffset, length = 0;
-        int position = readBuffer.position();
-        while (offset < position) {
-            long curPacakgeLen = bufferArray.getCurPacageLength();
-            byte packetCmd = bufferArray.getCurPacageCmd();
-            if (curPacakgeLen == 0) {// 还没有解析包头获取到长度
-                if (!validateHeader(offset, position)) {
-                    copyToNewBuffer(bufferArray, readBuffer, offset);
-                    offset = 0;
-                    break;
-                }
-                length = getPacketLength(bufferArray, offset);
-                // 读取到了包头和长度
-                bufferArray.setCurPacketLength(length);
-                // 解析报文类型
-//                packetCmd = getPacketCmd(readBuffer, offset);
-                bufferArray.setCurPacketCmd(packetCmd);
-                offset += PACKAGE_HEADER_SIZE;
-            } else {
-                // 判断当前的数据包是否完整读取
-                long totalPacketSize = bufferArray.calcTotalPacketSize();
-                int totalLength = bufferArray.getTotalBytesLength();
-                long exceededSize = totalLength - totalPacketSize;
-                if (exceededSize >= 0) {// 刚好当前报文结束,或者有空间结余
-                    bufferArray.increatePacketIndex();
-                    offset = position - exceededSize;
-                } else {// 当前数据包还没读完
-                    offset = 0;
-                    // 立即返回，否则会将当前ByteBuffer当成新报文去读
-                    break;
-                }
+    protected long parseProtocolPakage(){
+        long length, limit = message.getData().getTotalBytesLength();
+        byte packetCmd;
 
-            }
-
+        // 检查报文头部是否读取完整
+        if (message.getPosition() + TrackerMessage.PACKAGE_HEADER_SIZE > limit) {
+            return readBufferOffset;
         }
-        // 返回下一次读取的标记位置
-        return offset;
-    }
+        length = message.readLong();
 
+        // 读取到了包头和长度
+        // 解析报文类型
+        packetCmd = message.readByte();
+        // message指针设置在头部结束的位置，等待读取数据
+        message.setPosition(message.getPosition() + TrackerMessage.PACKAGE_STATE_SIZE);
 
-    protected long parseProtocolPakage(TrackerByteBufferArray bufferArray, long readBufferOffset){
-        long offset = readBufferOffset, length = 0;
-        long position = bufferArray.getTotalBytesLength();
-        while (offset < position) {
-            long curPacakgeLen = bufferArray.getCurPacageLength();
-            byte packetCmd = bufferArray.getCurPacageCmd();
-            if (curPacakgeLen == 0) {// 还没有解析包头获取到长度
-                if (!validateHeader(offset, position)) {
-//                    copyToNewBuffer(bufferArray, readBuffer, offset);
-//                    offset = 0;
-                    break;
-                }
-                length = getPacketLength(bufferArray, offset);
-                // 读取到了包头和长度
-                bufferArray.setCurPacketLength(length);
-                // 解析报文类型
-                packetCmd = getPacketCmd(bufferArray, offset);
-                bufferArray.setCurPacketCmd(packetCmd);
-                offset += PACKAGE_HEADER_SIZE;
-            } else {
-                // 判断当前的数据包是否完整读取
-                long totalPacketSize = bufferArray.calcTotalPacketSize();
-                int totalLength = bufferArray.getTotalBytesLength();
-                long exceededSize = totalLength - totalPacketSize;
-                if (exceededSize >= 0) {// 刚好当前报文结束,或者有空间结余
-                    bufferArray.increatePacketIndex();
-                    offset = position - exceededSize;
-                } else {// 当前数据包还没读完
-                    offset = 0;
-                    // 立即返回，否则会将当前ByteBuffer当成新报文去读
-                    break;
-                }
-
-            }
-
+        // 检查报文体是否读取完整
+        if(message.getPosition() + length > limit){
+            return readBufferOffset;
         }
+
         // 返回下一次读取的标记位置
-        return offset;
+        message.setPkgLen(length);
+        message.setCmd(packetCmd);
+
+        // 返回本次报文结束的位置
+        return message.getPosition() + length;
     }
 
     @Override
     protected void cleanup() {
         // 清理资源占用
         this.readBufferArray.recycle();
+        clientInfo = null;
+        message = null;
         super.cleanup();
     }
 
@@ -173,20 +132,24 @@ public class TrackerConnection extends Connection {
         return ApplicationContext.getInstance().getProperty("charset");
     }
 
-    private boolean validateHeader(long offset, long position){
-        return offset + PACKAGE_HEADER_SIZE <= position;
+    public TrackerClientInfo getClientInfo() {
+        return clientInfo;
+    }
+
+    public void setClientInfo(TrackerClientInfo clientInfo) {
+        this.clientInfo = clientInfo;
+    }
+
+    public TrackerMessage getMessage() {
+        return message;
+    }
+
+    public long getReadBufferOffset() {
+        return readBufferOffset;
     }
 
     private void copyToNewBuffer(TrackerByteBufferArray byteBufferArray, ByteBuffer readByteBuffer
         , long offset){
 
-    }
-
-    private long getPacketLength(TrackerByteBufferArray bufferArray, long offset){
-        return bufferArray.readLong(offset);
-    }
-
-    private byte getPacketCmd(TrackerByteBufferArray bufferArray, long offset){
-        return bufferArray.readByte(offset);
     }
 }

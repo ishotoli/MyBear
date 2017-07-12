@@ -77,8 +77,8 @@ public class TrackerByteBufferArray {
      * 
      * @return
      */
-    public int getTotalBytesLength() {
-        int totalLen = 0;
+    public long getTotalBytesLength() {
+        long totalLen = 0;
         int endBlock = writedBlockLst.size();
         for (int i = 0; i < endBlock; i++) {
             ByteBuffer bytBuf = writedBlockLst.get(i);
@@ -266,6 +266,13 @@ public class TrackerByteBufferArray {
         return writedBlockLst.get(blockIndex).get(blockOffset);
     }
 
+    public int readInt(long offset){
+        return (readByte(offset++) & 0xFF) << 24
+            | (readByte(offset++) & 0xFF) << 16
+            | (readByte(offset++) & 0xFF) << 8
+            | (readByte(offset++) & 0xFF);
+    }
+
     public long readLong(long offset){
         return (readByte(offset++) & 0xFFL) << 56
             | (readByte(offset++) & 0xFFL) << 48
@@ -283,5 +290,23 @@ public class TrackerByteBufferArray {
 
     public void setCurHandlingPacageIndex(int curHandlingPacageIndex) {
         this.curHandlingPacageIndex = curHandlingPacageIndex;
+    }
+
+    public void compact(long offset){
+        int blockSize = writedBlockLst.size();
+        if(blockSize == 1){
+            ByteBuffer buf = getLastByteBuffer();
+            if(offset >= 0 && offset <= buf.position()){
+                buf.limit(buf.position());
+                buf.position((int)offset);
+                buf.compact();
+            }
+        }else if(blockSize > 0){
+            while(offset > this.blockCapasity){
+                ByteBuffer buf = writedBlockLst.remove(0);
+                bufferPool.recycle(buf);
+                offset = offset - this.blockCapasity;
+            }
+        }
     }
 }

@@ -1,6 +1,8 @@
 package io.mybear.net2.tracker;
 
 import io.mybear.net2.NIOHandler;
+import io.mybear.tracker.command.TrackerCommand;
+import io.mybear.tracker.command.TrackerCommandFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.slf4j.Logger;
@@ -16,7 +18,8 @@ public class TrackerNioHandler implements NIOHandler<TrackerConnection> {
 
     @Override
     public void onConnectFailed(TrackerConnection conn, Throwable e) {
-        logger.debug("onConnectFailed: {}", conn);
+        logger.warn("onConnectFailed: {}", conn);
+        logger.warn("reason: {}", e.getMessage());
 
     }
 
@@ -31,19 +34,17 @@ public class TrackerNioHandler implements NIOHandler<TrackerConnection> {
         // nothing to do
     }
 
-    public void handle(TrackerConnection conn, TrackerByteBufferArray nioData) {
-        long pkgLen = nioData.getCurPacageLength();
-
-        logger.debug("handle: {}", nioData);
+    public void handle(TrackerConnection conn, TrackerMessage message) {
+        TrackerCommandFactory.getHandler(conn.getMessage().getCmd()).handle(conn, message);
     }
 
     @Override
     public void handleEnd(TrackerConnection con, ByteBuffer nioData) {
-        // wtf...
+        // nothing to do
     }
 
     @Override
     public void handleMetaData(TrackerConnection con, ByteBuffer nioData) {
-        // wtf...
+        // nothing to do
     }
 }
