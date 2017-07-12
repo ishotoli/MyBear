@@ -10,9 +10,12 @@ import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.File;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
+
 import static io.mybear.common.utils.BasicTypeConversionUtil.*;
 
 /**
@@ -31,6 +34,8 @@ public class StorageService {
     public static final String ACCESS_LOG_ACTION_QUERY_FILE = "status";
     static boolean h = false;
     private static final ReentrantLock lock = new ReentrantLock();
+    //文件路径分隔符
+    public static final String FILE_SEPARATOR = File.separator;
 
     public static void STORAGE_nio_notify(FastTaskInfo pTask) {
 
@@ -215,7 +220,6 @@ public class StorageService {
                                          int crc32, int fileNameLen) {
         char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
         char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
-        int len;
         long maskedFileSize = 0L;
         StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pFileContext.getExtraInfo();
         FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
@@ -230,13 +234,34 @@ public class StorageService {
         }
         long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
         int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
-        Base64Context base64Context = new Base64Context();
-        Base64.base64EncodeEx(base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5, encoded, fileNameLen, false);
+        //需要定义一个全局的Base64Context
+        Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5, encoded, fileNameLen, false);
         if (!storageUploadInfo.isIfSubPathAlloced()) {
             storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
             storageUploadInfo.setIfSubPathAlloced(true);
         }
-        return 0;
+        char[] fileName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
+        int fileLen = fileName.length;
+        int flag = 0;
+        if(fileNameLen > encoded.length){
+            flag = fileName.length;
+            fileName = Arrays.copyOf(fileName,flag+encoded.length);
+            System.arraycopy(encoded,0,fileName,flag,encoded.length);
+        }else{
+            flag = fileName.length;
+            fileName = Arrays.copyOf(fileName,flag+fileNameLen);
+            System.arraycopy(encoded,0,fileName,flag,fileNameLen);
+            int len = FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN+1;
+            if(storageUploadInfo.getFormattedExtName().length > len){
+                fileName = Arrays.copyOf(fileName,flag+fileNameLen+len);
+                System.arraycopy(storageUploadInfo.getFormattedExtName(),0,fileName,flag+fileNameLen,len);
+            }else{
+                fileName = Arrays.copyOf(fileName,flag+fileNameLen+storageUploadInfo.getFormattedExtName().length);
+                System.arraycopy(storageUploadInfo.getFormattedExtName(),0,fileName,flag+fileNameLen,storageUploadInfo.getFormattedExtName().length);
+            }
+        }
+        fileNameLen += fileLen + FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN+1;
+        return fileNameLen;
     }
 
     private static long combineRandFileSize(long size, long maskedFileSize) {
@@ -282,5 +307,10 @@ public class StorageService {
             trunkPathInfo.setSubPathHigh(((n >> 8) & 0xFF) % StorageGlobal.g_subdir_count_per_path);
             trunkPathInfo.setSubPathLow((n & 0xFF) % StorageGlobal.g_subdir_count_per_path);
         }
+    }
+
+    public static void main(String[] args) {
+        int c = 200;
+        System.out.println(String.format("%02X", c));
     }
 }

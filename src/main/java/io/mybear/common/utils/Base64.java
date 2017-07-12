@@ -9,6 +9,16 @@ import io.mybear.common.Base64Context;
  * @date 2017/07/10
  */
 public class Base64 {
+    /**
+     * 初始化 Base64Context Base64#base64_init_ex
+     * @param base64Context
+     */
+    public static void base64InitEx(Base64Context base64Context,int i, char c, char c1, char c2){
+        if(base64Context == null){
+            base64Context = new Base64Context();
+        }
+
+    }
 
     /**
      * 类型转换
@@ -17,7 +27,6 @@ public class Base64 {
      */
     public static char[] base64EncodeEx(Base64Context base64Context, char[] src, int nSrcLen, char[] dest, int destLen,
                                         boolean bPad) {
-
         int linePos;
         int leftover;
         int combined;
@@ -127,4 +136,5 @@ public class Base64 {
         } // end switch;
         return dest;
     }
+
 }
