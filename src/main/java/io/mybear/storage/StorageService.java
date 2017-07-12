@@ -10,11 +10,9 @@ import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
-
 import static io.mybear.common.utils.BasicTypeConversionUtil.*;
 
 /**
