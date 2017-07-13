@@ -9,15 +9,46 @@ import io.mybear.common.Base64Context;
  * @date 2017/07/10
  */
 public class Base64 {
+
+    public static final int BASE64_IGNORE = -1;
+    public static final int BASE64_PAD = -2;
+
     /**
      * 初始化 Base64Context Base64#base64_init_ex
+     *
      * @param base64Context
      */
-    public static void base64InitEx(Base64Context base64Context,int i, char c, char c1, char c2){
-        if(base64Context == null){
+    public static void base64InitEx(Base64Context base64Context, int nLineLength, char chPlus, char chSplash, char chPad) {
+        if (base64Context == null) {
             base64Context = new Base64Context();
         }
+        int i;
+        base64Context.setLineLength(nLineLength);
+        base64Context.getLineSeparator()[0] = '\n';
+        base64Context.getLineSeparator()[1] = '\0';
+        base64Context.setLineSepLen(1);
 
+        // build translate valueToChar table only once.
+        // 0..25 -> 'A'..'Z'
+        for (i = 0; i <= 25; i++) {
+            base64Context.getValueToChar()[i] = (char) ('A' + i);
+        }
+        // 26..51 -> 'a'..'z'
+        for (i = 0; i <= 25; i++) {
+            base64Context.getValueToChar()[i + 26] = (char) ('a' + i);
+        }
+        // 52..61 -> '0'..'9'
+        for (i = 0; i <= 9; i++) {
+            base64Context.getValueToChar()[i + 52] = (char) ('0' + i);
+        }
+        base64Context.getValueToChar()[62] = chPlus;
+        base64Context.getValueToChar()[63] = chSplash;
+        //memset(context -> charToValue, BASE64_IGNORE, sizeof(context -> charToValue));
+        for (i = 0; i < 64; i++) {
+            base64Context.getCharToValue()[base64Context.getValueToChar()[i]] = i;
+        }
+        base64Context.setPadCh(chPad);
+        base64Context.getCharToValue()[chPad] = BASE64_PAD;
     }
 
     /**
