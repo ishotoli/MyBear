@@ -3,6 +3,9 @@ package io.mybear.net2.tracker;
 import io.mybear.common.ApplicationContext;
 import io.mybear.net2.Connection;
 import io.mybear.net2.ReactorBufferPool;
+import io.mybear.tracker.types.FdfsGroupInfo;
+import io.mybear.tracker.types.FdfsStorageDetail;
+import io.mybear.tracker.types.FdfsStorageStat;
 import io.mybear.tracker.types.TrackerClientInfo;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -21,6 +24,14 @@ public class TrackerConnection extends Connection {
 
     public TrackerConnection(SocketChannel channel) {
         super(channel);
+
+        // for test
+        TrackerClientInfo clientInfo = new TrackerClientInfo();
+        clientInfo.setGroup(new FdfsGroupInfo());
+        clientInfo.setStorage(new FdfsStorageDetail());
+        clientInfo.getStorage().setState(new FdfsStorageStat());
+        this.clientInfo = clientInfo;
+        // for test
     }
 
     @Override
@@ -83,7 +94,7 @@ public class TrackerConnection extends Connection {
                     readBufferOffset = newOffset;
 
                     // 报文处理完成后，腾出readBufferArray空间。
-                    readBufferArray.compact(readBufferOffset);
+                    readBufferOffset = readBufferArray.compact(readBufferOffset);
                 }
             }
         }
@@ -134,10 +145,6 @@ public class TrackerConnection extends Connection {
 
     public TrackerClientInfo getClientInfo() {
         return clientInfo;
-    }
-
-    public void setClientInfo(TrackerClientInfo clientInfo) {
-        this.clientInfo = clientInfo;
     }
 
     public TrackerMessage getMessage() {

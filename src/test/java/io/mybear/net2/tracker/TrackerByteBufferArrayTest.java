@@ -66,7 +66,9 @@ public class TrackerByteBufferArrayTest {
     @Test
     public void testReadLong(){
         ByteBuffer buf1 = byteBufferArray.addNewBuffer();
+        logger.debug("byteBuffer: {}", buf1);
         ByteBuffer buf2 = byteBufferArray.addNewBuffer();
+        logger.debug("byteBuffer: {}", buf2);
 
         long l0 = 54674891436546l;
         putLong(buf1, l0, 0);
@@ -79,8 +81,8 @@ public class TrackerByteBufferArrayTest {
         putLong(buf2, l3, 0);
         long l4 = 7835135494344573l;
         putLong(buf2, l4, 0);
-        logger.debug("buf1: {}", buf1.array());
-        logger.debug("buf2: {}", buf2.array());
+//        logger.debug("buf1: {}", buf1.array());
+//        logger.debug("buf2: {}", buf2.array());
 
         long l = byteBufferArray.readLong(0);
         logger.debug("l0: {}", Long.toBinaryString(l0));
@@ -124,8 +126,8 @@ public class TrackerByteBufferArrayTest {
         putInt(buf2, i7, 0);
         int i8 = 984436511;
         putInt(buf2, i8, 0);
-        logger.debug("buf1: {}", buf1.array());
-        logger.debug("buf2: {}", buf2.array());
+//        logger.debug("buf1: {}", buf1.array());
+//        logger.debug("buf2: {}", buf2.array());
 
         int i = byteBufferArray.readInt(2);
         Assert.assertEquals(i0, i);

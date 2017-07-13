@@ -12,6 +12,8 @@ public class ApplicationContext {
 
     private static ApplicationContext INSTANCE;
 
+    public static boolean debug = false;
+
     public ApplicationContext() throws IOException{
         this(DEFAULT_CONFIG_FILE_NAME);
     }
@@ -20,6 +22,11 @@ public class ApplicationContext {
         for (String path : filePath) {
             URL url = getClass().getClassLoader().getResource(path);
             properties.load(new FileInputStream(url.getFile()));
+        }
+
+        String activeProfile = getProperty("debug");
+        if(activeProfile != null && activeProfile.toLowerCase().equals("true")){
+            debug = true;
         }
 
         INSTANCE = this;

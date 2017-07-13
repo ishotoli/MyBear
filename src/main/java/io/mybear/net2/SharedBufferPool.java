@@ -1,6 +1,6 @@
 package io.mybear.net2;
 
-import io.mybear.common.ApplicationContextUtil;
+import io.mybear.common.ApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +105,7 @@ public class SharedBufferPool {
     }
 
     private ByteBuffer createDirectBuffer(int size) {
-        if(ApplicationContextUtil.isDev()){
+        if(ApplicationContext.debug){
             return ByteBuffer.allocate(size);
         }
 

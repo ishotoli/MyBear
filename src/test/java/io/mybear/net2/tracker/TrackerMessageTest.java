@@ -18,20 +18,19 @@ public class TrackerMessageTest {
 
     @Test
     public void testRead(){
-        EasyMock.expect(mockTrackerByteBufferArray.readLong(0)).andReturn(0l);
+        EasyMock.expect(mockTrackerByteBufferArray.readLong(0)).andReturn(0L);
         EasyMock.expect(mockTrackerByteBufferArray.readInt(8)).andReturn(0);
         EasyMock.expect(mockTrackerByteBufferArray.readByte(12)).andReturn((byte)0);
         EasyMock.replay(mockTrackerByteBufferArray);
 
         message.setPosition(0);
-        Assert.assertEquals(0l, message.readLong());
-        Assert.assertEquals(8l, message.getPosition());
+        Assert.assertEquals(0L, message.readLong());
+        Assert.assertEquals(8L, message.getPosition());
 
         Assert.assertEquals(0, message.readInt());
-        Assert.assertEquals(12l, message.getPosition());
+        Assert.assertEquals(12L, message.getPosition());
 
         Assert.assertEquals(0, message.readByte());
-        Assert.assertEquals(13l, message.getPosition());
+        Assert.assertEquals(13L, message.getPosition());
     }
-
 }

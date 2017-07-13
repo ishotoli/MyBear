@@ -262,7 +262,7 @@ public class TrackerByteBufferArray {
         final int blockCapasity = this.blockCapasity;
         int blockIndex = (int)(offset / blockCapasity);
         int blockOffset = (int)(offset % blockCapasity);
-        logger.debug("read byte: {}", writedBlockLst.get(blockIndex).get(blockOffset));
+//        logger.debug("read byte: {}", writedBlockLst.get(blockIndex).get(blockOffset));
         return writedBlockLst.get(blockIndex).get(blockOffset);
     }
 
@@ -292,7 +292,7 @@ public class TrackerByteBufferArray {
         this.curHandlingPacageIndex = curHandlingPacageIndex;
     }
 
-    public void compact(long offset){
+    public long compact(long offset){
         int blockSize = writedBlockLst.size();
         if(blockSize == 1){
             ByteBuffer buf = getLastByteBuffer();
@@ -301,6 +301,7 @@ public class TrackerByteBufferArray {
                 buf.position((int)offset);
                 buf.compact();
             }
+            return 0;
         }else if(blockSize > 0){
             while(offset > this.blockCapasity){
                 ByteBuffer buf = writedBlockLst.remove(0);
@@ -308,5 +309,6 @@ public class TrackerByteBufferArray {
                 offset = offset - this.blockCapasity;
             }
         }
+        return offset;
     }
 }
