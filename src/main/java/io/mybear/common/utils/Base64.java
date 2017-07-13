@@ -1,7 +1,7 @@
 package io.mybear.common.utils;
 
 import java.util.Arrays;
-
+import java.util.Random;
 import io.mybear.common.Base64Context;
 
 /**
@@ -13,12 +13,60 @@ import io.mybear.common.Base64Context;
 public class Base64 {
 
     /**
+     * Marker value for chars we just ignore, e.g. \n \r high ascii
+     */
+    public static final int BASE64_IGNORE = -1;
+    /**
+     * Marker for = trailing pad
+     */
+    public static final int BASE64_PAD = -2;
+    public static final Random random = new Random();
+
+    /**
+     * 初始化 Base64Context Base64#base64_init_ex
+     *
+     * @param base64Context
+     */
+    public static void base64InitEx(Base64Context base64Context, int nLineLength, char chPlus, char chSplash,
+                                    char chPad) {
+        if (base64Context == null) {
+            base64Context = new Base64Context();
+        }
+        base64Context.setLineLength(nLineLength);
+        base64Context.getLineSeparator()[0] = '\n';
+        base64Context.getLineSeparator()[1] = '\0';
+        base64Context.setLineSepLen(1);
+        // build translate valueToChar table only once.
+        // 0..25 -> 'A'..'Z'
+        for (int i = 0; i <= 25; i++) {
+            base64Context.getValueToChar()[i] = (char)('A' + i);
+        }
+        // 26..51 -> 'a'..'z'
+        for (int i = 0; i <= 25; i++) {
+            base64Context.getValueToChar()[i + 26] = (char)('a' + i);
+        }
+        // 52..61 -> '0'..'9'
+        for (int i = 0; i <= 9; i++) {
+            base64Context.getValueToChar()[i + 52] = (char)('0' + i);
+        }
+        base64Context.getValueToChar()[62] = chPlus;
+        base64Context.getValueToChar()[63] = chSplash;
+        //用-1填充
+        Arrays.fill(base64Context.getCharToValue(), BASE64_IGNORE);
+        for (int i = 0; i < 64; i++) {
+            base64Context.getCharToValue()[base64Context.getValueToChar()[i]] = i;
+        }
+        base64Context.setPadCh(chPad);
+        base64Context.getCharToValue()[chPad] = BASE64_PAD;
+    }
+
+    /**
      * 类型转换
      *
      * @return
      */
-    public static char[] base64EncodeEx(Base64Context base64Context, char[] src, int nSrcLen, char[] dest, int destLen,
-                                        boolean bPad) {
+    public static int base64EncodeEx(Base64Context base64Context, char[] src, int nSrcLen, char[] dest, int destLen,
+                                     boolean bPad) {
         int linePos;
         int leftover;
         int combined;
@@ -36,7 +84,7 @@ public class Base64 {
         if (nSrcLen <= 0) {
             dest = new char[0];
             destLen = 0;
-            return dest;
+            return destLen;
         }
         linePos = 0;
         lens[0] = (nSrcLen / 3) * 3;
@@ -53,12 +101,21 @@ public class Base64 {
                 break;
             case 1:
                 loop = 2;
-                szPad[0] = src[nSrcLen - 1];
+                if (nSrcLen > src.length) {
+                    szPad[0] = (char)random.nextInt();
+                } else {
+                    szPad[0] = src[nSrcLen - 1];
+                }
                 break;
             case 2:
                 loop = 2;
-                szPad[0] = src[nSrcLen - 2];
-                szPad[1] = src[nSrcLen - 1];
+                if (nSrcLen > src.length) {
+                    szPad[0] = (char)random.nextInt();
+                    szPad[1] = (char)random.nextInt();
+                } else {
+                    szPad[0] = src[nSrcLen - 2];
+                    szPad[1] = src[nSrcLen - 1];
+                }
                 break;
         }
         pDest = dest;
@@ -70,7 +127,7 @@ public class Base64 {
                 pEnd = new char[0];
             }
             pRaw = ppSrcs[k];
-            for (int i = 0; pRaw.length > pEnd.length; i += 3) {
+            for (int i = 0; pRaw.length > pEnd.length && i < lens[k]; i += 3) {
                 // Start a new line if next 4 chars won't fit on the current line
                 // We can't encapsulete the following code since the variable need to
                 // be local to this incarnation of encode.
@@ -79,13 +136,20 @@ public class Base64 {
                     if (base64Context.getLineLength() != 0) {
                         System.arraycopy(base64Context.getLineSeparator(), 0, pDest, flag,
                             base64Context.getLineSepLen());
-                        //pDest += base64Context.getLineSepLen();
                         flag += base64Context.getLineSepLen();
                     }
                     linePos = 4;
                 }
                 // get next three bytes in unsigned form lined up,
                 // in big-endian order
+                if ((i + 2) >= pRaw.length) {
+                    int temp = pRaw.length;
+                    //这里扩容大一些
+                    pRaw = Arrays.copyOf(pRaw, pRaw.length + 10);
+                    for(int j=0;j<10;j++){
+                        pRaw[temp+j] = (char)(random.nextInt());
+                    }
+                }
                 combined = ((pRaw[i]) << 16) | ((pRaw[i + 1]) << 8) | pRaw[i + 2];
                 // break those 24 bits into a 4 groups of 6 bits,
                 // working LSB to MSB.
@@ -98,15 +162,18 @@ public class Base64 {
                 c0 = combined & 0x3f;
                 // Translate into the equivalent alpha character
                 // emitting them in big-endian order.
-                pDest[flag++] = (char)base64Context.getCharToValue()[c0];
-                pDest[flag++] = (char)base64Context.getCharToValue()[c1];
-                pDest[flag++] = (char)base64Context.getCharToValue()[c2];
-                pDest[flag++] = (char)base64Context.getCharToValue()[c3];
+                if (pDest.length <= (flag + 4)) {
+                    //这里扩容大一些
+                    pDest = Arrays.copyOf(pDest, flag + 10);
+                }
+                pDest[flag++] = base64Context.getValueToChar()[c0];
+                pDest[flag++] = base64Context.getValueToChar()[c1];
+                pDest[flag++] = base64Context.getValueToChar()[c2];
+                pDest[flag++] = base64Context.getValueToChar()[c3];
             }
         }
-
-  *pDest = '\0';
-        destLen = pDest - dest;
+        System.out.println(pDest);
+        destLen = flag;
         // deal with leftover bytes
         switch (leftover) {
             case 0:
@@ -119,7 +186,11 @@ public class Base64 {
                     pDest[pDest.length - 1] = (char)base64Context.getPadCh();
                     pDest[pDest.length - 2] = (char)base64Context.getPadCh();
                 } else {
-                    pDest[pDest.length - 2] = '\0';
+                    char temp[] = new char[pDest.length];
+                    for (int i = 0; i < flag - 2; i++) {
+                        temp[i] = pDest[i];
+                    }
+                    pDest = temp;
                     destLen -= 2;
                 }
                 break;
@@ -128,12 +199,18 @@ public class Base64 {
                 if (bPad) {
                     pDest[pDest.length - 1] = (char)base64Context.getPadCh();
                 } else {
-                    pDest[pDest.length - 1] = '\0';
+                    char temp[] = new char[pDest.length];
+                    for (int i = 0; i < flag - 1; i++) {
+                        temp[i] = pDest[i];
+                    }
+                    pDest = temp;
                     destLen -= 1;
                 }
                 break;
         } // end switch;
-        return dest;
+        System.out.println(pDest);
+        System.out.println(destLen);
+        return destLen;
     }
 
     public static void main(String[] args) {
@@ -148,5 +225,6 @@ public class Base64 {
         }
         System.out.println(Arrays.toString(pEnd));
     }
+
 }
 
