@@ -20,9 +20,8 @@ public class TestBase64 {
         char[] src = "hellohellohellohello".toCharArray();
         int nSrcLen = 20;
         char[] dest = new char[SizeOfConstant.SIZE_OF_INT * 8+1];
-        int destLen = 0;
         boolean bPad = false;
-        Base64.base64EncodeEx(base64Context, src, nSrcLen, dest, destLen, bPad);
+        Base64.base64EncodeEx(base64Context, src, nSrcLen, dest, bPad);
         System.out.println(dest);
     }
 }

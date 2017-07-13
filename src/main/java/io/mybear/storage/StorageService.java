@@ -1,6 +1,8 @@
 package io.mybear.storage;
 
+import com.alibaba.fastjson.JSON;
 import io.mybear.common.*;
+import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.utils.Base64;
 import io.mybear.common.utils.HashUtil;
@@ -10,6 +12,7 @@ import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -188,7 +191,7 @@ public class StorageService {
                 .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
-            if ((result = storageGenFilename(pClientInfo, pFileContext, fileSize, crc32, fileNameLen)) != 0) {
+            if ((result = storageGenFilename(pClientInfo, pFileContext, fileSize, crc32, fileNameLen)) < 0) {
                 return result;
             }
             filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
@@ -218,50 +221,58 @@ public class StorageService {
      */
     public static int storageGenFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize,
                                          int crc32, int fileNameLen) {
-        char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
-        char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
-        long maskedFileSize = 0L;
-        StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pFileContext.getExtraInfo();
-        FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
-        //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
-        //int2buff(htonl(g_server_id_in_filename),buff);
-        int2buff(0, buff);
-        int2buff(storageUploadInfo.getStartTime(), buff, SizeOfConstant.SIZE_OF_INT);
-        if ((fileSize >> 32) != 0) {
-            maskedFileSize = fileSize;
-        } else {
-            maskedFileSize = combineRandFileSize(fileSize, maskedFileSize);
-        }
-        long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
-        int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
-        //需要定义一个全局的Base64Context
-        fileNameLen = Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5, encoded, fileNameLen, false);
-        if (!storageUploadInfo.isIfSubPathAlloced()) {
-            storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
-            storageUploadInfo.setIfSubPathAlloced(true);
-        }
-        char[] fileName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
-        int fileLen = fileName.length;
-        int flag = 0;
-        if(fileNameLen > encoded.length){
-            flag = fileName.length;
-            fileName = Arrays.copyOf(fileName,flag+encoded.length);
-            System.arraycopy(encoded,0,fileName,flag,encoded.length);
-        }else{
-            flag = fileName.length;
-            fileName = Arrays.copyOf(fileName,flag+fileNameLen);
-            System.arraycopy(encoded,0,fileName,flag,fileNameLen);
-            int len = FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN+1;
-            if(storageUploadInfo.getFormattedExtName().length > len){
-                fileName = Arrays.copyOf(fileName,flag+fileNameLen+len);
-                System.arraycopy(storageUploadInfo.getFormattedExtName(),0,fileName,flag+fileNameLen,len);
-            }else{
-                fileName = Arrays.copyOf(fileName,flag+fileNameLen+storageUploadInfo.getFormattedExtName().length);
-                System.arraycopy(storageUploadInfo.getFormattedExtName(),0,fileName,flag+fileNameLen,storageUploadInfo.getFormattedExtName().length);
+        try {
+            char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
+            char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
+            long maskedFileSize = 0L;
+            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pFileContext.getExtraInfo();
+            FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
+            //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
+            //int2buff(htonl(g_server_id_in_filename),buff);
+            int2buff(0, buff);
+            int2buff(storageUploadInfo.getStartTime(), buff, SizeOfConstant.SIZE_OF_INT);
+            if ((fileSize >> 32) != 0) {
+                maskedFileSize = fileSize;
+            } else {
+                maskedFileSize = combineRandFileSize(fileSize, maskedFileSize);
             }
+            long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
+            int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
+            //需要定义一个全局的Base64Context
+            fileNameLen = Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5, encoded, false);
+            if (fileNameLen < 0) {
+                return fileNameLen;
+            }
+            if (!storageUploadInfo.isIfSubPathAlloced()) {
+                storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
+                storageUploadInfo.setIfSubPathAlloced(true);
+            }
+            char[] fileName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
+            int fileLen = fileName.length;
+            int flag = 0;
+            if (fileNameLen > encoded.length) {
+                flag = fileName.length;
+                fileName = Arrays.copyOf(fileName, flag + encoded.length);
+                System.arraycopy(encoded, 0, fileName, flag, encoded.length);
+            } else {
+                flag = fileName.length;
+                fileName = Arrays.copyOf(fileName, flag + fileNameLen);
+                System.arraycopy(encoded, 0, fileName, flag, fileNameLen);
+                int len = FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1;
+                if (storageUploadInfo.getFormattedExtName().length > len) {
+                    fileName = Arrays.copyOf(fileName, flag + fileNameLen + len);
+                    System.arraycopy(storageUploadInfo.getFormattedExtName(), 0, fileName, flag + fileNameLen, len);
+                } else {
+                    fileName = Arrays.copyOf(fileName, flag + fileNameLen + storageUploadInfo.getFormattedExtName().length);
+                    System.arraycopy(storageUploadInfo.getFormattedExtName(), 0, fileName, flag + fileNameLen, storageUploadInfo.getFormattedExtName().length);
+                }
+            }
+            fileNameLen += fileLen + FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1;
+            return fileNameLen;
+        } catch (Exception e) {
+            log.error(CommonConstant.LOG_FORMAT, "storageGenFilename", "pFileContext:" + JSON.toJSONString(pFileContext) + " fileSize " + fileSize + " crc32 " + crc32, "e{}" + e);
+            return -1;
         }
-        fileNameLen += fileLen + FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN+1;
-        return fileNameLen;
     }
 
     private static long combineRandFileSize(long size, long maskedFileSize) {
