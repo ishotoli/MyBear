@@ -6,17 +6,16 @@ import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.utils.Base64;
 import io.mybear.common.utils.HashUtil;
+import io.mybear.common.utils.RandomUtil;
 import io.mybear.net2.ByteBufferArray;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static io.mybear.common.utils.BasicTypeConversionUtil.*;
@@ -182,26 +181,27 @@ public class StorageService {
      * @return
      */
     public static int storageGetFilename(StorageClientInfo pClientInfo, int startTime, long fileSize,
-                                          int crc32, char[] szFormattedExt, char[] fileName,char[] fullFilename) {
+                                         int crc32, char[] szFormattedExt, char[] fileName, char[] fullFilename) {
 
         int fileNameLen;
-        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
-                .getStorePathIndex();
+        int storePathIndex = ((StorageUploadInfo)pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
+            .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
-            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize,crc32,szFormattedExt, startTime,fileName)) < 0) {
+            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize, crc32, szFormattedExt, startTime, fileName))
+                < 0) {
                 return fileNameLen;
             }
             filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
             if (!FdfsSharedFunc.fileExists(filePathName)) {
-                System.arraycopy(filePathName,0,fullFilename,0,filePathName.length());
+                System.arraycopy(filePathName, 0, fullFilename, 0, filePathName.length());
                 break;
             }
             filePathName = "";
         }
         if (filePathName == null || "".equals(filePathName)) {
             log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName,
-                    "Can't generate uniq filename");
+                "Can't generate uniq filename");
             return -1;
         }
         return filePathName.length();
@@ -222,7 +222,7 @@ public class StorageService {
             char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
             char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
             long maskedFileSize = 0L;
-            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo();
+            StorageUploadInfo storageUploadInfo = (StorageUploadInfo)pClientInfo.getFileContext().getExtraInfo();
             FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
             //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
             //int2buff(htonl(g_server_id_in_filename),buff);
@@ -236,7 +236,8 @@ public class StorageService {
             long2buff(maskedFileSize, buff, SizeOfConstant.SIZE_OF_INT * 2);
             int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
             //需要定义一个全局的Base64Context
-            fileNameLen = Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5, encoded, false);
+            fileNameLen = Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5,
+                encoded, false);
             if (fileNameLen < 0) {
                 return fileNameLen;
             }
@@ -244,7 +245,8 @@ public class StorageService {
                 storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
                 storageUploadInfo.setIfSubPathAlloced(true);
             }
-            char[] fileNewName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
+            char[] fileNewName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13)
+                + FILE_SEPARATOR).toCharArray();
             int fileLen = fileNewName.length;
             int flag = 0;
             if (fileNameLen > encoded.length) {
@@ -268,7 +270,8 @@ public class StorageService {
             System.arraycopy(fileNewName, 0, fileName, 0, fileNewName.length);
             return fileNameLen;
         } catch (Exception e) {
-            log.error(CommonConstant.LOG_FORMAT, "storageGenFilename", "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
+            log.error(CommonConstant.LOG_FORMAT, "storageGenFilename",
+                "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
                     + fileSize + " crc32 " + crc32 + " szFormattedExt " + szFormattedExt
                     + " timeStamp " + timeStamp + "fileName" + fileName, "e{}" + e);
             return -1;
@@ -276,9 +279,9 @@ public class StorageService {
     }
 
     private static long combineRandFileSize(long size, long maskedFileSize) {
-        Random random = new Random(32767);
-        int r = (random.nextInt() >>> 26 & 0x007FFFFF) | 0x80000000;
-        maskedFileSize = (((long) r) << 32) | size;
+
+        int r = (RandomUtil.randomFixedInt() & 0x007FFFFF) | 0x80000000;
+        maskedFileSize = (((long)r) << 32) | size;
         return maskedFileSize;
     }
 

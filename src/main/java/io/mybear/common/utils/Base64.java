@@ -1,8 +1,6 @@
 package io.mybear.common.utils;
 
 import java.util.Arrays;
-import java.util.Random;
-
 import com.alibaba.fastjson.JSON;
 import io.mybear.common.Base64Context;
 import io.mybear.common.constants.CommonConstant;
@@ -27,7 +25,6 @@ public class Base64 {
      * Marker for = trailing pad
      */
     public static final int BASE64_PAD = -2;
-    public static final Random random = new Random();
 
     /**
      * 初始化 Base64Context Base64#base64_init_ex
@@ -111,7 +108,7 @@ public class Base64 {
                 case 1:
                     loop = 2;
                     if (nSrcLen > src.length) {
-                        szPad[0] = (char) random.nextInt();
+                        szPad[0] = (char) RandomUtil.randomNextInt();
                     } else {
                         szPad[0] = src[nSrcLen - 1];
                     }
@@ -119,8 +116,8 @@ public class Base64 {
                 case 2:
                     loop = 2;
                     if (nSrcLen > src.length) {
-                        szPad[0] = (char) random.nextInt();
-                        szPad[1] = (char) random.nextInt();
+                        szPad[0] = (char) RandomUtil.randomNextInt();
+                        szPad[1] = (char) RandomUtil.randomNextInt();
                     } else {
                         szPad[0] = src[nSrcLen - 2];
                         szPad[1] = src[nSrcLen - 1];
@@ -156,7 +153,7 @@ public class Base64 {
                         //这里扩容大一些
                         pRaw = Arrays.copyOf(pRaw, pRaw.length + 10);
                         for (int j = 0; j < 10; j++) {
-                            pRaw[temp + j] = (char) (random.nextInt());
+                            pRaw[temp + j] = (char) (RandomUtil.randomNextInt());
                         }
                     }
                     combined = ((pRaw[i]) << 16) | ((pRaw[i + 1]) << 8) | pRaw[i + 2];
