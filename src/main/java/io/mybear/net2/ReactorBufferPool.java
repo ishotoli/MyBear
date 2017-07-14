@@ -1,7 +1,10 @@
 package io.mybear.net2;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.LinkedList;
+
+import io.mybear.net2.tracker.TrackerByteBufferArray;
 
 /**
  * 此BufferPool主要是为单一线程使用，即Reactor线程专用的BufferPool，因此读取数据不用加锁，
@@ -19,7 +22,7 @@ public class ReactorBufferPool {
     // 最多存放多少个byteBuffer，超过部分则放入共享池
     private final int maxFreeCount;
     // 池化的ByteBufferArray对象，为了降低创建的频率
-    //  private final LinkedList<ByteBufferArray> extByteBufferPool = new LinkedList<ByteBufferArray>();
+    private final LinkedList<TrackerByteBufferArray> extByteBufferPool = new LinkedList<TrackerByteBufferArray>();
 
     public ReactorBufferPool(SharedBufferPool shearedBufferPool, Thread reactorThread, int maxFreeCount) {
         this.sharedBufferPool = shearedBufferPool;
@@ -50,11 +53,31 @@ public class ReactorBufferPool {
             return;
         }
 
-
         // 共享池回收
         sharedBufferPool.recycle(extBuffer);
+    }
 
+    /**
+     * 回收ByteBufferArrayd
+     *
+     * @param extBuffer
+     */
+    public void recycle(TrackerByteBufferArray extBuffer) {
+        if (Thread.currentThread() == reactorThread) {
+            extByteBufferPool.add(extBuffer);
+            // reactor线程回收
+            if (freeBuffers.size() < maxFreeCount) {
+                ArrayList<ByteBuffer> arrayList = extBuffer.getWritedBlockLst();
+                long size = arrayList.size();
+                for (int i = 0; i < size; i++) {
+                    freeBuffers.add(arrayList.get(i));
+                }
+                return;
+            }
+        }
 
+        // 共享池回收
+        sharedBufferPool.recycle(extBuffer.getWritedBlockLst());
     }
 
     public ByteBuffer allocateByteBuffer() {
@@ -73,6 +96,22 @@ public class ReactorBufferPool {
 
         // 另外线程要求分配或者当前用完了，从共享BufferPool获取
         return new ByteBufferArray(this);
+    }
+
+    /**
+     * 分配一个ByteBufferArray,ByteBufferArray使用完成后需要回收
+     *
+     * @return ByteBufferArray
+     */
+    public TrackerByteBufferArray allocateTrackerByteBufferArray() {
+        if (Thread.currentThread() == reactorThread) {
+            if (!extByteBufferPool.isEmpty()) {
+                TrackerByteBufferArray result = extByteBufferPool.removeLast();
+                result.clear();
+                return result;
+            }
+        }
+        return new TrackerByteBufferArray(this);
     }
 
     public SharedBufferPool getSharedBufferPool() {

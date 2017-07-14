@@ -1,5 +1,6 @@
 package io.mybear.net2;
 
+import io.mybear.common.ApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,7 @@ public class SharedBufferPool {
      * 申请一个ByteBuffer 内存，用完需要在合适的时间释放，
      *
      * @return
-     * @see recycle
+     * @see io.mybear.net2.SharedBufferPool#recycle
      */
     public ByteBuffer allocate() {
         ByteBuffer node = freeBuffers.poll();
@@ -104,8 +105,11 @@ public class SharedBufferPool {
     }
 
     private ByteBuffer createDirectBuffer(int size) {
+        if(ApplicationContext.debug){
+            return ByteBuffer.allocate(size);
+        }
+
         // for performance
-        // TODO debug阶段用堆内存调试
         return ByteBuffer.allocateDirect(size);
     }
 
