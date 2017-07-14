@@ -176,27 +176,25 @@ public class StorageService {
      * 获取文件名
      *
      * @param pClientInfo
-     * @param pFileContext
      * @param fileSize
      * @param crc32
      * @param fileName
-     * @param fileNameLen
      * @return
      */
-    public static int storageGetFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize,
-                                         int crc32, String fileName, int fileNameLen) {
+    public static int storageGetFilename(StorageClientInfo pClientInfo, int startTime, long fileSize,
+                                          int crc32, char[] szFormattedExt, char[] fileName,char[] fullFilename) {
 
-        int result;
+        int fileNameLen;
         int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
                 .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
-            if ((result = storageGenFilename(pClientInfo, pFileContext, fileSize, crc32, fileNameLen)) < 0) {
-                return result;
+            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize,crc32,szFormattedExt, startTime,fileName)) < 0) {
+                return fileNameLen;
             }
             filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
             if (!FdfsSharedFunc.fileExists(filePathName)) {
-                pFileContext.setFileName(filePathName);
+                System.arraycopy(filePathName,0,fullFilename,0,filePathName.length());
                 break;
             }
             filePathName = "";
@@ -206,31 +204,30 @@ public class StorageService {
                     "Can't generate uniq filename");
             return -1;
         }
-        return 0;
+        return filePathName.length();
     }
 
     /**
      * 生成文件名 storage_service#storage_gen_filename
      *
      * @param pClientInfo
-     * @param pFileContext
      * @param fileSize
      * @param crc32
-     * @param fileNameLen
      * @return
      */
-    public static int storageGenFilename(StorageClientInfo pClientInfo, StorageFileContext pFileContext, long fileSize,
-                                         int crc32, int fileNameLen) {
+    public static int storageGenFilename(StorageClientInfo pClientInfo, long fileSize,
+                                         int crc32, char[] szFormattedExt, int timeStamp, char[] fileName) {
         try {
+            int fileNameLen;
             char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
             char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
             long maskedFileSize = 0L;
-            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pFileContext.getExtraInfo();
+            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pClientInfo.getFileContext().getExtraInfo();
             FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
             //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
             //int2buff(htonl(g_server_id_in_filename),buff);
             int2buff(0, buff);
-            int2buff(storageUploadInfo.getStartTime(), buff, SizeOfConstant.SIZE_OF_INT);
+            int2buff(timeStamp, buff, SizeOfConstant.SIZE_OF_INT);
             if ((fileSize >> 32) != 0) {
                 maskedFileSize = fileSize;
             } else {
@@ -247,30 +244,33 @@ public class StorageService {
                 storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
                 storageUploadInfo.setIfSubPathAlloced(true);
             }
-            char[] fileName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
-            int fileLen = fileName.length;
+            char[] fileNewName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
+            int fileLen = fileNewName.length;
             int flag = 0;
             if (fileNameLen > encoded.length) {
-                flag = fileName.length;
-                fileName = Arrays.copyOf(fileName, flag + encoded.length);
-                System.arraycopy(encoded, 0, fileName, flag, encoded.length);
+                flag = fileNewName.length;
+                fileNewName = Arrays.copyOf(fileNewName, flag + encoded.length);
+                System.arraycopy(encoded, 0, fileNewName, flag, encoded.length);
             } else {
-                flag = fileName.length;
-                fileName = Arrays.copyOf(fileName, flag + fileNameLen);
-                System.arraycopy(encoded, 0, fileName, flag, fileNameLen);
+                flag = fileNewName.length;
+                fileNewName = Arrays.copyOf(fileNewName, flag + fileNameLen);
+                System.arraycopy(encoded, 0, fileNewName, flag, fileNameLen);
                 int len = FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1;
-                if (storageUploadInfo.getFormattedExtName().length > len) {
-                    fileName = Arrays.copyOf(fileName, flag + fileNameLen + len);
-                    System.arraycopy(storageUploadInfo.getFormattedExtName(), 0, fileName, flag + fileNameLen, len);
+                if (szFormattedExt.length > len) {
+                    fileNewName = Arrays.copyOf(fileNewName, flag + fileNameLen + len);
+                    System.arraycopy(szFormattedExt, 0, fileNewName, flag + fileNameLen, len);
                 } else {
-                    fileName = Arrays.copyOf(fileName, flag + fileNameLen + storageUploadInfo.getFormattedExtName().length);
-                    System.arraycopy(storageUploadInfo.getFormattedExtName(), 0, fileName, flag + fileNameLen, storageUploadInfo.getFormattedExtName().length);
+                    fileNewName = Arrays.copyOf(fileNewName, flag + fileNameLen + szFormattedExt.length);
+                    System.arraycopy(szFormattedExt, 0, fileNewName, flag + fileNameLen, szFormattedExt.length);
                 }
             }
             fileNameLen += fileLen + FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1;
+            System.arraycopy(fileNewName, 0, fileName, 0, fileNewName.length);
             return fileNameLen;
         } catch (Exception e) {
-            log.error(CommonConstant.LOG_FORMAT, "storageGenFilename", "pFileContext:" + JSON.toJSONString(pFileContext) + " fileSize " + fileSize + " crc32 " + crc32, "e{}" + e);
+            log.error(CommonConstant.LOG_FORMAT, "storageGenFilename", "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
+                    + fileSize + " crc32 " + crc32 + " szFormattedExt " + szFormattedExt
+                    + " timeStamp " + timeStamp + "fileName" + fileName, "e{}" + e);
             return -1;
         }
     }
