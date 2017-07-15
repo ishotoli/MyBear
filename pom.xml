@@ -20,12 +20,6 @@
         <slf4j-api.version>1.7.12</slf4j-api.version>
     </properties>
     <dependencies>
-        <!-- junit -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-        </dependency>
         <!-- jmh -->
         <!--<dependency>-->
         <!--<groupId>org.openjdk.jmh</groupId>-->
@@ -67,6 +61,24 @@
             <version>1.27-SNAPSHOT</version>
             <scope>system</scope>
             <systemPath>${basedir}/lib/fastdfs-client-java-1.27-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.34</version>
+        </dependency>
+        <!-- junit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.easymock</groupId>
+            <artifactId>easymock</artifactId>
+            <version>3.4</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
