@@ -1,7 +1,10 @@
 package io.mybear.storage;
 
-import io.mybear.common.*;
-import io.mybear.net2.*;
+import io.mybear.common.IniFileReader;
+import io.mybear.common.ProcessAction;
+import io.mybear.common.ScheduleArray;
+import io.mybear.common.ScheduleEntry;
+import io.mybear.storage.storageNio.*;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +45,7 @@ public class FdfsStoraged {
             return;
         }
         TrunkShared.trunkSharedInit();
+        StorageDio.init();
         confFilename = args[0];
         Path conf = ProcessAction.getBasePathFromConfFile(confFilename);
         Path pidFilename = Paths.get(g_fdfs_base_path, "/data/fdfs_storaged.pid");
@@ -109,26 +113,29 @@ public class FdfsStoraged {
         NameableExecutor businessExecutor = ExecutorUtil.create("BusinessExecutor", 10);
         // 定时器Executor，用来执行定时任务
         NamebleScheduledExecutor timerExecutor = ExecutorUtil.createSheduledExecute("Timer", 5);
-
+        /// timerExecutor.scheduleAtFixedRate(TimeUtil::update,0,1, TimeUnit.SECONDS);
         SharedBufferPool sharedPool = new SharedBufferPool(1024 * 1024 * 100, 1024);
         new NetSystem(sharedPool, businessExecutor, timerExecutor);
+        // timerExecutor.scheduleAtFixedRate(()->NetSystem.getInstance().firstReadIdleCheck(),30,30,TimeUnit.SECONDS);
         // Reactor pool
-        NIOReactorPool reactorPool = new NIOReactorPool("Reactor Pool", 5, sharedPool);
+        NIOReactorPool reactorPool = new NIOReactorPool("Reactor Pool", 4, sharedPool);
         NIOConnector connector = new NIOConnector("NIOConnector", reactorPool);
         connector.start();
         NetSystem.getInstance().setConnector(connector);
         NetSystem.getInstance().setNetConfig(new SystemConfig());
-        final StorageNio SINGLE = new StorageNio();
+
 
         ConnectionFactory frontFactory = new ConnectionFactory() {
             @Override
             protected Connection makeConnection(SocketChannel channel) throws IOException {
-                return new FastTaskInfo(channel);
+                Connection c = new FastTaskInfo(channel);
+                c.setIdleTimeout(30 * 1000L);//30s
+                return c;
             }
 
             @Override
             protected NIOHandler getNIOHandler() {
-                return SINGLE;
+                return null;
             }
         };
         NIOAcceptor server = new NIOAcceptor("Server", g_bind_addr, g_server_port, frontFactory, reactorPool);

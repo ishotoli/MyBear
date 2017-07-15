@@ -1,5 +1,7 @@
-package io.mybear.net2;
+package io.mybear.storage.storageNio;
 
+
+import io.mybear.storage.parserHandler.ParserHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,37 +13,42 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.mybear.net2.Connection.TaskType.*;
-import static org.csource.fastdfs.ProtoCommon.*;
+import static io.mybear.storage.storageNio.Connection.PacketState.*;
+import static io.mybear.storage.storageNio.Connection.TaskType.*;
+import static java.nio.channels.SelectionKey.OP_READ;
 
 
 /**
  * @author wuzh
  */
 public abstract class Connection implements ClosableConnection {
-    private static final int OP_NOT_READ = ~SelectionKey.OP_READ;
+    private static final int OP_NOT_READ = ~OP_READ;
     private static final int OP_NOT_WRITE = ~SelectionKey.OP_WRITE;
     public static Logger LOGGER = LoggerFactory.getLogger(Connection.class);
     protected final SocketChannel channel;
+    protected final long startupTime;
     private final WriteQueue writeQueue = new WriteQueue(1024 * 1024 * 16);
     private final ReentrantLock writeQueueLock = new ReentrantLock();
     public long length; //data length
-    public long offset = -10;
+    public long offset = 0;
     public int metaDataLength;
     public byte cmd;
     public long uploadFileSize;
+    public boolean needInit = false;
+    public ParserHandler parserHandler;
     public FileChannel uploadChannel;
     public long downloadPosition;
     public FileChannel downloadChannel;
     public TaskType taskType = TaskType.Query;
     public PacketState packetState;
+    public ByteBuffer readBuffer;
+    public ByteBuffer writeBuffer;
     protected String host;
     protected int port;
     protected int localPort;
     protected long id;
     protected boolean isClosed;
     protected boolean isSocketClosed;
-    protected long startupTime;
     protected long lastReadTime;
     protected long lastWriteTime;
     protected int netInBytes;
@@ -53,9 +60,7 @@ public abstract class Connection implements ClosableConnection {
     private State state = State.connecting;
     private Direction direction = Direction.in;
     private SelectionKey processKey;
-    private ByteBuffer readBuffer;
     private int readBufferOffset;
-    private ByteBuffer writeBuffer;
     private long lastLargeMessageTime;
     private long idleTimeout;
     private long lastPerfCollectTime;
@@ -70,7 +75,8 @@ public abstract class Connection implements ClosableConnection {
         this.lastReadTime = startupTime;
         this.lastWriteTime = startupTime;
         this.lastPerfCollectTime = startupTime;
-        this.packetState = PacketState.header;
+        this.packetState = header;
+        this.offset = 0;
         // this.readBuffer.limit(10);
     }
 
@@ -143,8 +149,16 @@ public abstract class Connection implements ClosableConnection {
         return lastReadTime;
     }
 
+    public void setLastReadTime(long lastReadTime) {
+        this.lastReadTime = lastReadTime;
+    }
+
     public long getLastWriteTime() {
         return lastWriteTime;
+    }
+
+    public void setLastWriteTime(long lastWriteTime) {
+        this.lastWriteTime = lastWriteTime;
     }
 
     public long getNetInBytes() {
@@ -254,15 +268,12 @@ public abstract class Connection implements ClosableConnection {
     @SuppressWarnings("unchecked")
     public void register(Selector selector, ReactorBufferPool myBufferPool) throws IOException {
         this.myBufferPool = myBufferPool;
-        processKey = channel.register(selector, SelectionKey.OP_READ, this);
+        processKey = channel.register(selector, OP_READ, this);
         NetSystem.getInstance().addConnection(this);
         //this.readBufferArray = myBufferPool.allocateByteBuffer()
         readBuffer = this.myBufferPool.allocateByteBuffer();
-        offset = -10;
-        taskType = TaskType.Query;
+        offset = 0;
         readBuffer.limit(10).position(0);
-        this.handler.onConnected(this);
-
     }
 
     public void doWriteQueue0() throws IOException {
@@ -280,6 +291,22 @@ public abstract class Connection implements ClosableConnection {
     }
 
     public void doWriteQueue() {
+        if (readBuffer != null) {
+            try {
+                if (readBuffer.hasRemaining()) {
+                    channel.write(writeBuffer);
+                }
+                if (!readBuffer.hasRemaining()) {
+                    needInit = true;
+                    this.disableWrite();
+                    this.enableRead();
+                    toHead(readBuffer);
+                }
+                return;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         try {
             if (taskType != TaskType.Download) {
                 doWriteQueue0();
@@ -381,7 +408,7 @@ public abstract class Connection implements ClosableConnection {
         boolean needWakeup = false;
         try {
             SelectionKey key = this.processKey;
-            key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+            key.interestOps(key.interestOps() | OP_READ);
             needWakeup = true;
         } catch (Exception e) {
             LOGGER.warn("enable read fail " + e);
@@ -391,53 +418,21 @@ public abstract class Connection implements ClosableConnection {
         }
     }
 
-    void toHead(ByteBuffer byteBuffer) throws IOException {
-        if (downloadChannel != null) {
-            if (downloadPosition == downloadChannel.size()) {
-                downloadChannel.close();
-                downloadChannel = null;
-                downloadPosition = 0;
-                switch (taskType) {
-                    case DownloadWithUpload:
-                        this.uploadChannel.close();
-                        this.uploadFileSize = 0;
-                        taskType = Upload;
-                        return;
-                    case DownloadWithQuery:
-                        taskType = Query;
-                    case Upload:
-                    case Download:
-                        taskType = Query;
-                        break;
-                    default:
-                        throw new IOException("暂不支持");
-                }
-            } else {
-                switch (taskType) {
-                    case DownloadWithUpload:
-                    case DownloadWithQuery:
-                        taskType = Download;
-                        return;
-                    default:
-                        throw new IOException("暂不支持");
-                }
-            }
-        }
-        if (this.uploadChannel != null && uploadChannel.position() == uploadFileSize) {
-            uploadChannel.close();
-            uploadChannel = null;
-            uploadFileSize = 0;
-        }
+    void toHead(ByteBuffer byteBuffer) {
         length = 0;
-        offset = -10;
-        taskType = TaskType.Query;
-        byteBuffer.limit(10).position(0);
-        this.packetState = PacketState.header;
+        metaDataLength = 0;
+        offset = 0;
+        try {
+            byteBuffer.limit(10).position(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        this.packetState = header;
     }
 
     void toDownloadWithHead(ByteBuffer byteBuffer) throws IOException {
         byteBuffer.limit(10).position(0);
-        this.packetState = PacketState.header;
+        this.packetState = header;
     }
 
 //    void toFix(ByteBuffer byteBuffer, int length) {
@@ -447,78 +442,26 @@ public abstract class Connection implements ClosableConnection {
 //    }
 
     void toPacket(ByteBuffer byteBuffer) {
-        byteBuffer.clear();
+        byteBuffer.position(0);
         byteBuffer.limit(byteBuffer.capacity());
-        this.packetState = PacketState.packet;
+        this.packetState = packet;
     }
 
     void toMetaData(ByteBuffer byteBuffer, int metaDatalength) {
-        this.metaDataLength = metaDatalength;
-        byteBuffer.clear();
-        byteBuffer.limit(metaDatalength);
-        this.packetState = PacketState.metaData;
+        byteBuffer.position(0);
+        try {
+            byteBuffer.limit(metaDatalength);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        this.packetState = metaData;
     }
 
     void toFix(ByteBuffer byteBuffer) {
         long rest = (this.length - this.offset) % byteBuffer.capacity();
-        byteBuffer.clear();
+        byteBuffer.position(0);
         byteBuffer.limit((int) rest);
-        this.packetState = PacketState.fix;
-    }
-
-    long getMetaDataLength(int cmd, long totalLen) {
-        switch (cmd) {
-            case FDFS_PROTO_CMD_QUIT:
-                return 0;
-            case TRACKER_PROTO_CMD_SERVER_LIST_GROUP:
-                return 0;
-            case TRACKER_PROTO_CMD_SERVER_LIST_STORAGE:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVER_DELETE_STORAGE:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ALL:
-                return totalLen;
-            case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ALL:
-                return totalLen;
-            case TRACKER_PROTO_CMD_RESP:
-                return 0;
-            case FDFS_PROTO_CMD_ACTIVE_TEST:
-                return 0;
-            case STORAGE_PROTO_CMD_UPLOAD_FILE:
-                return 15;
-            case STORAGE_PROTO_CMD_DELETE_FILE:
-                return totalLen;
-            case STORAGE_PROTO_CMD_SET_METADATA:
-                return totalLen;
-            case STORAGE_PROTO_CMD_DOWNLOAD_FILE:
-                return totalLen;
-            case STORAGE_PROTO_CMD_GET_METADATA:
-                return totalLen;
-            case STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE:
-                return totalLen;
-            case STORAGE_PROTO_CMD_QUERY_FILE_INFO:
-                return totalLen;
-            case STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE:
-                return 15;//待修改
-            case STORAGE_PROTO_CMD_APPEND_FILE:
-                return 15;
-            case STORAGE_PROTO_CMD_MODIFY_FILE:
-                return 15;
-            case STORAGE_PROTO_CMD_TRUNCATE_FILE:
-                return 16;
-            default:
-                return -1;
-        }
+        this.packetState = fix;
     }
 
 
@@ -528,91 +471,136 @@ public abstract class Connection implements ClosableConnection {
      * @throws IOException
      */
     protected void asynRead() throws IOException {
+        /**
+         * 避免重复进入状态机多次操作
+         */
         if (this.isClosed) {
             return;
         }
-        switch (taskType) {
-            case DownloadWithQuery:
-            case Query:
-                break;
-            case DownloadWithUpload:
-            case Upload: {
-                long uploadPosition = uploadChannel.position();
-                this.uploadChannel.transferFrom(channel, uploadPosition, uploadFileSize - uploadPosition);
-                if (uploadChannel.position() != uploadFileSize) {
-                    return;
-                } else {
-                    this.handler.handleEnd(this, readBuffer);
-                    toHead(readBuffer);
-                    return;
-                }
+        if (Connection.PacketState.write == this.packetState) {
+            if (!this.needInit) {
+                return;
+            } else {
+                this.needInit = false;
+                this.toHead(this.readBuffer);
             }
-            case Download: {
-                doWriteQueue();
-                toDownloadWithHead(readBuffer);
-                break;
-            }
-            default:
-                break;
         }
         int got = 0;
+        boolean needReadChannel = false;//避免多次读取channel却是返回0
         got = channel.read(readBuffer);
-        offset += got;
-        while (true) {
-            switch (packetState) {
-                case header: {
-                    if (readBuffer.position() < 10) {
-                        return;
-                    } else {
-                        this.length = readBuffer.getLong(0);
-                        this.cmd = readBuffer.get(8);
-                        int state = readBuffer.get(9);
-                        toMetaData(readBuffer, (int) getMetaDataLength(cmd, length));
-                        continue;
-                    }
-                }
-                case metaData: {
-                    if (readBuffer.hasRemaining()) {
-                        return;
-                    } else {
-                        this.handler.handleMetaData(this, readBuffer);
-                        if (this.uploadFileSize == 0) {
-                            toFix(readBuffer);
-                        }
-                        TaskType taskType = this.taskType;
-                        if (taskType == TaskType.Download) {
-                            return;
-                        }
-                        continue;
-                    }
-                }
-                case fix: {
-                    if (readBuffer.hasRemaining()) {
-                        return;
-                    } else {
-                        this.handler.handle(this, readBuffer);
-                        toPacket(readBuffer);
-                        continue;
-                    }
-                }
-                case packet:
-                default: {
-                    if (offset == length) {
-                        this.handler.handleEnd(this, readBuffer);
-                        toHead(readBuffer);
-                        continue;
-                    } else if (readBuffer.hasRemaining()) {
-                        return;
-                    } else {
-                        this.handler.handle(this, readBuffer);
-                        readBuffer.clear();
-                        continue;
-                    }
-                }
-            }
-
+        LOGGER.debug("解析报文开始->读取通道");
+        if (got == -1) {
+            closeSocket();
+            return;
         }
+        if (got == 0) return;
+        lastReadTime = TimeUtil.currentTimeMillis();
+        offset += got;
+        do {
+            if (needReadChannel) {
+                LOGGER.info("读取通道");
+                got = channel.read(readBuffer);
+                if (got == -1) closeSocket();
+                offset += got;
+            }
+            if (packetState == header) {
+                if (readBuffer.position() < 10) {
+                    return;
+                } else {
+                    long len = readBuffer.getLong(0);
+                    this.length = len + 10;
+                    this.cmd = readBuffer.get(8);
+                    int state = readBuffer.get(9);
+                    if (len == 0) {
+                        LOGGER.debug("解析报文结束->解析得到仅仅有head的请求");
+                        parseEndFunction();
+                        return;
+                    }
+                    this.parserHandler = ParserHandler.getParserHandler(cmd);
+                    //int mataLen = (int) ParserHandler.getMetaDataLength(cmd, length);
+                    int mataLen = parserHandler.getSize();
+                    if (mataLen == 0) {
+                        LOGGER.debug("遇上特殊报文,没有进一步描述数据包的长度");
+                        toFix(readBuffer);
+                        needReadChannel = true;
+                        continue;
+                    }
+                    needReadChannel = true;
+                    toMetaData(readBuffer, mataLen);
+                    continue;
+                }
+            } else if (packetState == metaData) {
+                if (readBuffer.hasRemaining()) {
+                    return;
+                } else {
+                    this.length = this.length - parserHandler.handleMetaData(this, readBuffer);
+                    if (offset == length) {
+                        LOGGER.debug("解析报文结束->解析得到不含有变长字段的报文");
+                        parseEndFunction();
+                        return;
+                    } else {
+                        needReadChannel = true;
+                        toFix(readBuffer);
+                        continue;
+                    }
+                }
+            } else if (packetState == fix) {
+                if (readBuffer.hasRemaining()) {
+                    return;
+                } else {
+                    parserHandler.handle(this, readBuffer);
+                    needReadChannel = true;
+                    toPacket(readBuffer);
+                    continue;
+                }
+            } else if (offset == length) {
+                LOGGER.debug("解析报文结束->解析得到含有变长字段的报文");
+                parseEndFunction();
+                return;
+            } else if (readBuffer.hasRemaining()) {
+                return;
+            } else {
+                parserHandler.handle(this, readBuffer);
+                readBuffer.position(0);
+                continue;
+            }
+        } while (true);
     }
+
+    void parseEndFunction() {
+        if (readBuffer.position() == 0 || (readBuffer.limit() == readBuffer.position())) {
+            LOGGER.debug("解析报文结束->精准取出报文信息");
+        } else {
+            LOGGER.debug("解析报文结束->解析报文失败,下一次解析会出错");
+        }
+        packetState = write;
+        disableRead();
+        if (!parserHandler.handleEnd(this, readBuffer)) {
+            /**
+             * 如果返回false,则马上向通道写入数据,写入不了等下次响应通知
+             */
+            try {
+                SocketChannel socketChannel = this.getChannel();
+                int g = socketChannel.write(readBuffer);
+                if (g == 10) {
+                    toHead(readBuffer);
+                    return;
+                } else if (g == -1) {
+                    closeSocket();
+                    return;
+                }
+                this.enableWrite(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+                closeSocket();
+            }
+        }
+        /**
+         * 不再监控异步读的超时
+         */
+        NetSystem.getInstance().removeConnection(this);
+    }
+
 
     public void setTaskType(TaskType type) throws Exception {
         TaskType taskType = this.taskType;
@@ -703,7 +691,7 @@ public abstract class Connection implements ClosableConnection {
     }
 
     public enum PacketState {
-        header, fix, packet, metaData
+        header, fix, packet, metaData, write
     }
 
     public enum TaskType {
