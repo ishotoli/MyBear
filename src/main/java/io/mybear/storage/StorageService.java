@@ -173,6 +173,13 @@ public class StorageService {
     }
 
     /**
+     * 删除文件
+     */
+    public static void storageServerDeleteFile(){
+
+    }
+
+    /**
      * 获取文件名
      *
      * @param pClientInfo
@@ -293,7 +300,7 @@ public class StorageService {
      * @param fileNameLen
      * @param trunkPathInfo
      */
-    private static void storageGetStorePath(char[] filename, int fileNameLen, FDFSTrunkPathInfo trunkPathInfo) {
+    private static void storageGetStorePath(char[] filename, int fileNameLen, FdfsTrunkPathInfo trunkPathInfo) {
         int n;
         if (StorageGlobal.g_file_distribute_path_mode == TrackerTypes.FDFS_FILE_DIST_PATH_ROUND_ROBIN) {
             trunkPathInfo.setSubPathHigh(StorageGlobal.g_dist_path_index_high);
