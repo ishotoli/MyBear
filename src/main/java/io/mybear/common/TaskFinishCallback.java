@@ -1,5 +1,7 @@
 package io.mybear.common;
 
+import io.mybear.storage.storageNio.FastTaskInfo;
+
 import java.util.function.Function;
 
 /**

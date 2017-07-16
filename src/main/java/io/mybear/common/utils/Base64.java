@@ -1,6 +1,8 @@
 package io.mybear.common.utils;
 
 import java.util.Arrays;
+import java.util.Random;
+
 import com.alibaba.fastjson.JSON;
 import io.mybear.common.Base64Context;
 import io.mybear.common.constants.CommonConstant;
@@ -25,6 +27,7 @@ public class Base64 {
      * Marker for = trailing pad
      */
     public static final int BASE64_PAD = -2;
+    public static final Random random = new Random();
 
     /**
      * 初始化 Base64Context Base64#base64_init_ex

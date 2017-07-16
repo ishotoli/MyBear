@@ -7,7 +7,8 @@ import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.utils.Base64;
 import io.mybear.common.utils.HashUtil;
 import io.mybear.common.utils.RandomUtil;
-import io.mybear.net2.ByteBufferArray;
+import io.mybear.storage.storageNio.ByteBufferArray;
+import io.mybear.storage.storageNio.FastTaskInfo;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
@@ -18,7 +19,8 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.mybear.common.utils.BasicTypeConversionUtil.*;
+import static io.mybear.common.utils.BasicTypeConversionUtil.int2buff;
+import static io.mybear.common.utils.BasicTypeConversionUtil.long2buff;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -34,10 +36,9 @@ public class StorageService {
     public static final String ACCESS_LOG_ACTION_APPEND_FILE = "append";
     public static final String ACCESS_LOG_ACTION_TRUNCATE_FILE = "truncate";
     public static final String ACCESS_LOG_ACTION_QUERY_FILE = "status";
-    static boolean h = false;
-    private static final ReentrantLock lock = new ReentrantLock();
     //文件路径分隔符
     public static final String FILE_SEPARATOR = File.separator;
+    private static final ReentrantLock lock = new ReentrantLock();
 
     public static void STORAGE_nio_notify(FastTaskInfo pTask) {
 
@@ -184,8 +185,8 @@ public class StorageService {
                                          int crc32, char[] szFormattedExt, char[] fileName, char[] fullFilename) {
 
         int fileNameLen;
-        int storePathIndex = ((StorageUploadInfo)pClientInfo.getFileContext().getExtraInfo()).getTrunkInfo().getPath()
-            .getStorePathIndex();
+        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().extra_info).getTrunkInfo().getPath()
+                .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
             if ((fileNameLen = storageGenFilename(pClientInfo, fileSize, crc32, szFormattedExt, startTime, fileName))
@@ -222,7 +223,7 @@ public class StorageService {
             char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
             char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
             long maskedFileSize = 0L;
-            StorageUploadInfo storageUploadInfo = (StorageUploadInfo)pClientInfo.getFileContext().getExtraInfo();
+            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pClientInfo.getFileContext().extra_info;
             FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
             //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
             //int2buff(htonl(g_server_id_in_filename),buff);
@@ -327,4 +328,5 @@ public class StorageService {
         int c = 200;
         System.out.println(String.format("%02X", c));
     }
+
 }
