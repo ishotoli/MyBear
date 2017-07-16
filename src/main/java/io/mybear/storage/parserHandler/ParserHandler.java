@@ -99,7 +99,7 @@ public interface ParserHandler<T, U> {
 
     void handle(T con, U nioData);
 
-    boolean handleEnd(T con, U nioData);
+    void handleEnd(T con, U nioData);
 
     int getSize();
 

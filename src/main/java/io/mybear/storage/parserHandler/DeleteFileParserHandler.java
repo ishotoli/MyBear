@@ -29,9 +29,8 @@ public class DeleteFileParserHandler implements ParserHandler<FastTaskInfo, Byte
     }
 
     @Override
-    public boolean handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
         StorageDio.queuePush(con);
-        return false;
     }
 
     @Override

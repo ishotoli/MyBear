@@ -33,9 +33,8 @@ public class UploadSlaveFileParserHandler implements ParserHandler<FastTaskInfo,
     }
 
     @Override
-    public boolean handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
         StorageDio.queuePush(con);
-        return false;
     }
 
     @Override

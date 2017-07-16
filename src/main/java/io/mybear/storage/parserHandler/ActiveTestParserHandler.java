@@ -24,8 +24,8 @@ public class ActiveTestParserHandler implements ParserHandler<FastTaskInfo, Byte
     }
 
     @Override
-    public boolean handleEnd(FastTaskInfo con, ByteBuffer nioData) {
-        return false;
+    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+        return;
     }
 
     @Override

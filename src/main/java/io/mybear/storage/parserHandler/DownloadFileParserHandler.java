@@ -44,30 +44,53 @@ public class DownloadFileParserHandler implements ParserHandler<FastTaskInfo, By
 
     }
 
+    /**
+     * @param
+     * @param nioData
+     * @return
+     */
     @Override
-    public boolean handleEnd(FastTaskInfo con, ByteBuffer nioData) {
-        ParserHandler.debug(nioData);
+    public void handleEnd(FastTaskInfo c, ByteBuffer nioData) {
+        //ParserHandler.debug(nioData);
         byte[] bytes = new byte[nioData.position()];
         nioData.flip();
         nioData.get(bytes);
-        con.context.append(new String(bytes));
-        String filename = con.context.toString();
+        c.context.append(new String(bytes));
+        String filename = c.context.toString();
         System.out.println(filename);
-        try {
-            con.file_context.filename = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
-            con.file_context.fileChannel = FileChannel.open(con.file_context.filename, StandardOpenOption.READ);
-            long size = con.file_context.end = con.file_context.fileChannel.size();
-            nioData.clear();
-            ByteBuffer byteBuffer = nioData;
-            ByteBuffer header = byteBuffer.putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
-            header.flip();
-            while (con.getChannel().write(byteBuffer) > 0) ;
-            con.deal_func = StorageDio::dio_read_file;
-            StorageDio.queuePush(con);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return true;
+        c.deal_func = (con) -> {
+            try {
+                ByteBuffer header;
+                if (con.file_context.fileChannel == null) {//还没打开文件
+                    con.file_context.filename = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
+                    con.file_context.fileChannel = FileChannel.open(con.file_context.filename, StandardOpenOption.READ);
+                    long size = con.file_context.end = con.file_context.fileChannel.size();
+                    header = con.getMyBufferPool().allocateByteBuffer().putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
+                    header.flip();
+                    con.getChannel().write(header);
+                    if (header.hasRemaining()) {
+                        con.writeBuffer = header;
+                    } else {
+                        con.getMyBufferPool().recycle(header);
+                        con.deal_func = StorageDio::dio_read_file;
+                        StorageDio.queuePush(con);
+                    }
+                    return 0;
+                }
+                //极少可能会运行到这里
+                header = (ByteBuffer) con.writeBuffer;
+                con.getChannel().write(header);
+                if (!header.hasRemaining()) {
+                    con.getMyBufferPool().recycle(header);
+                    con.deal_func = StorageDio::dio_read_file;
+                    StorageDio.queuePush(con);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return 0;
+        };
+        StorageDio.queuePush(c);
     }
 
     @Override

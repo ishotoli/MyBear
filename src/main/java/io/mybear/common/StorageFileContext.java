@@ -43,5 +43,4 @@ public class StorageFileContext implements Serializable{
 
     public long tvDealStart; //task deal start tv for access log
 
-
 }

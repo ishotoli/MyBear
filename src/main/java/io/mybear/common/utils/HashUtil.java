@@ -1,7 +1,6 @@
 package io.mybear.common.utils;
 
 import io.mybear.common.constants.SizeOfConstant;
-import java.util.Arrays;
 
 /**
  * Created by zkn on 2017/7/11.

@@ -31,9 +31,8 @@ public class SetMetaDataParserHandler implements ParserHandler<FastTaskInfo, Byt
     }
 
     @Override
-    public boolean handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
         StorageDio.queuePush(con);
-        return false;
     }
 
     @Override

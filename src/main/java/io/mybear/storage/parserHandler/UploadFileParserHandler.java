@@ -58,7 +58,7 @@ public class UploadFileParserHandler implements ParserHandler<FastTaskInfo, Byte
         con.file_context.done_callback = (c) -> {
             try {
                 ByteBuffer res;
-                res = ByteBuffer.allocate(1000);
+                res = c.getMyBufferPool().allocateByteBuffer();
                 res.clear();
                 res.position(8);
                 setStorageCMDResp(res);
@@ -71,12 +71,7 @@ public class UploadFileParserHandler implements ParserHandler<FastTaskInfo, Byte
                 res.position(0);
                 res.putLong(0, pkgLen);
                 res.position(limit);
-                res.flip();
-                c.writeBuffer = res;
-                while (c.getChannel().write(res) > 0) ;
-                LOGGER.info("写入完成");
-                c.needInit = true;
-                c.enableRead();
+                c.write(res);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -92,10 +87,9 @@ public class UploadFileParserHandler implements ParserHandler<FastTaskInfo, Byte
     }
 
     @Override
-    public boolean handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
         //放进去dio
         StorageDio.queuePush(con);
-        return true;
     }
 
     @Override

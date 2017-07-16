@@ -58,16 +58,6 @@ public class NetSystem {
         this.connector = connector;
     }
 
-    public int getWriteQueueSize() {
-        int total = 0;
-        for (Connection con : allConnections.values()) {
-            total += con.getWriteQueue().size();
-        }
-
-        return total;
-
-    }
-
     public SystemConfig getNetConfig() {
         return netConfig;
     }

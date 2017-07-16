@@ -3,9 +3,9 @@ package io.mybear.common;
 import java.io.Serializable;
 import java.util.Arrays;
 
+import static io.mybear.common.FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN;
 import static io.mybear.tracker.TrackerTypes.FDFS_FILE_PREFIX_MAX_LEN;
 import static io.mybear.tracker.TrackerTypes.FDFS_GROUP_NAME_MAX_LEN;
-import static io.mybear.common.FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN;
 
 /**
  * Created by jamie on 2017/6/22.
