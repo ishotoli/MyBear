@@ -9,11 +9,13 @@ import io.mybear.common.utils.HashUtil;
 import io.mybear.common.utils.RandomUtil;
 import io.mybear.storage.storageNio.ByteBufferArray;
 import io.mybear.storage.storageNio.FastTaskInfo;
+import io.mybear.storage.trunkMgr.FDFSTrunkHeader;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -39,6 +41,13 @@ public class StorageService {
     //文件路径分隔符
     public static final String FILE_SEPARATOR = File.separator;
     private static final ReentrantLock lock = new ReentrantLock();
+    public static final int STORAGE_CREATE_FLAG_NONE = 0;
+    public static final int STORAGE_CREATE_FLAG_FILE = 1;
+    public static final int STORAGE_CREATE_FLAG_LINK = 2;
+
+    public static final int STORAGE_DELETE_FLAG_NONE = 0;
+    public static final int STORAGE_DELETE_FLAG_FILE = 1;
+    public static final int STORAGE_DELETE_FLAG_LINK = 2;
 
     public static void STORAGE_nio_notify(FastTaskInfo pTask) {
 
@@ -175,8 +184,42 @@ public class StorageService {
     /**
      * 删除文件
      */
-    public static void storageServerDeleteFile(){
+    public static void storageServerDeleteFile(FastTaskInfo pTask) {
+        StorageClientInfo pClientInfo;
+        StorageFileContext pFileContext;
+        char[] p;
+        FDFSTrunkHeader trunkHeader;
+        char[] group_name = new char[TrackerTypes.FDFS_GROUP_NAME_MAX_LEN + 1];
+        char[] true_filename = new char[128];
+        char[] filename;
+        int filename_len;
+        int true_filename_len;
+        File stat_buf;
+        int result;
+        int store_path_index;
+        long nInPackLen;
 
+        pClientInfo = (StorageClientInfo) pTask.arg;
+        pFileContext = pClientInfo.getFileContext();
+
+        nInPackLen = pClientInfo.getTotalLength() - SizeOfConstant.SIZE_OF_TRACKER_HEADER;
+        pClientInfo.setTotalLength(SizeOfConstant.SIZE_OF_TRACKER_HEADER);
+        pFileContext.deleteFlag = STORAGE_DELETE_FLAG_NONE;
+        if (nInPackLen <= TrackerTypes.FDFS_GROUP_NAME_MAX_LEN) {
+            log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask), "nInPackLen:" + nInPackLen + " < TrackerTypes.FDFS_GROUP_NAME_MAX_LEN " + TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
+            return;
+        }
+        if (nInPackLen >= pTask.size) {
+            log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask), "nInPackLen:" + nInPackLen + " < pTask.size " + pTask.size);
+            return;
+        }
+        if (TrackerTypes.FDFS_GROUP_NAME_MAX_LEN < SizeOfConstant.SIZE_OF_TRACKER_HEADER) {
+            p = new char[pTask.data.length + SizeOfConstant.SIZE_OF_TRACKER_HEADER];
+        } else {
+            p = new char[pTask.data.length + TrackerTypes.FDFS_GROUP_NAME_MAX_LEN];
+        }
+        System.arraycopy(pTask.data, 0, p, 0, pTask.data.length);
+        System.arraycopy(group_name, 0, p, pTask.data.length, TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
     }
 
     /**
@@ -197,7 +240,7 @@ public class StorageService {
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
             if ((fileNameLen = storageGenFilename(pClientInfo, fileSize, crc32, szFormattedExt, startTime, fileName))
-                < 0) {
+                    < 0) {
                 return fileNameLen;
             }
             filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
@@ -209,7 +252,7 @@ public class StorageService {
         }
         if (filePathName == null || "".equals(filePathName)) {
             log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName,
-                "Can't generate uniq filename");
+                    "Can't generate uniq filename");
             return -1;
         }
         return filePathName.length();
@@ -245,7 +288,7 @@ public class StorageService {
             int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
             //需要定义一个全局的Base64Context
             fileNameLen = Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5,
-                encoded, false);
+                    encoded, false);
             if (fileNameLen < 0) {
                 return fileNameLen;
             }
@@ -254,7 +297,7 @@ public class StorageService {
                 storageUploadInfo.setIfSubPathAlloced(true);
             }
             char[] fileNewName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13)
-                + FILE_SEPARATOR).toCharArray();
+                    + FILE_SEPARATOR).toCharArray();
             int fileLen = fileNewName.length;
             int flag = 0;
             if (fileNameLen > encoded.length) {
@@ -279,9 +322,9 @@ public class StorageService {
             return fileNameLen;
         } catch (Exception e) {
             log.error(CommonConstant.LOG_FORMAT, "storageGenFilename",
-                "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
-                    + fileSize + " crc32 " + crc32 + " szFormattedExt " + szFormattedExt
-                    + " timeStamp " + timeStamp + "fileName" + fileName, "e{}" + e);
+                    "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
+                            + fileSize + " crc32 " + crc32 + " szFormattedExt " + szFormattedExt
+                            + " timeStamp " + timeStamp + "fileName" + fileName, "e{}" + e);
             return -1;
         }
     }
@@ -289,7 +332,7 @@ public class StorageService {
     private static long combineRandFileSize(long size, long maskedFileSize) {
 
         int r = (RandomUtil.randomFixedInt() & 0x007FFFFF) | 0x80000000;
-        maskedFileSize = (((long)r) << 32) | size;
+        maskedFileSize = (((long) r) << 32) | size;
         return maskedFileSize;
     }
 

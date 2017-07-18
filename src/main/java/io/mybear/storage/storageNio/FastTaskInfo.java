@@ -1,8 +1,9 @@
 package io.mybear.storage.storageNio;
 
+import io.mybear.common.CommonDefine;
 import io.mybear.common.FDFSStorageServer;
 import io.mybear.common.StorageFileContext;
-
+import io.mybear.common.TaskFinishCallback;
 import java.nio.channels.SocketChannel;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -26,9 +27,17 @@ public class FastTaskInfo extends Connection implements Runnable {
 
     public FDFSStorageServer pSrcStorage;
     public Function<FastTaskInfo, Integer> deal_func;  //function pointer to deal this task
-    public Object extra_arg;   //store extra arg, such as (BinLogReader *)
+    public Object arg;   //store extra arg, such as (BinLogReader *)
     public Consumer<Object> clean_func;  //clean function pointer when finished
 
+    /////////////////////////////新增/////////////////////////////////////////////
+    private char[] clientIp = new char[CommonDefine.IP_ADDRESS_SIZE];
+    public int size;
+    public char[] data;
+    public long reqCount;
+    public TaskFinishCallback finishCallback;
+    //public NioThreadData threadData;
+    public FastTaskInfo next;
     public FastTaskInfo(SocketChannel channel) {
         super(channel);
     }
@@ -42,4 +51,9 @@ public class FastTaskInfo extends Connection implements Runnable {
     public void run() {
         deal_func.apply(this);
     }
+
+    public char[] getClientIp() {
+        return clientIp;
+    }
+
 }
