@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 import static io.mybear.common.FdfsGlobal.g_fdfs_base_path;
 
@@ -110,15 +111,16 @@ public class FdfsStoraged {
 
     static void socketServer(String g_bind_addr, int g_server_port) throws IOException {
         // Business Executor ，用来执行那些耗时的任务
-        NameableExecutor businessExecutor = ExecutorUtil.create("BusinessExecutor", 10);
+        NameableExecutor businessExecutor = ExecutorUtil.create("BusinessExecutor", 1);
         // 定时器Executor，用来执行定时任务
-        NamebleScheduledExecutor timerExecutor = ExecutorUtil.createSheduledExecute("Timer", 5);
+        NamebleScheduledExecutor timerExecutor = ExecutorUtil.createSheduledExecute("Timer", 1);
+        timerExecutor.scheduleAtFixedRate(TimeUtil::update, 0, 1, TimeUnit.SECONDS);
         /// timerExecutor.scheduleAtFixedRate(TimeUtil::update,0,1, TimeUnit.SECONDS);
         SharedBufferPool sharedPool = new SharedBufferPool(1024 * 1024 * 100, 1024);
         new NetSystem(sharedPool, businessExecutor, timerExecutor);
         // timerExecutor.scheduleAtFixedRate(()->NetSystem.getInstance().firstReadIdleCheck(),30,30,TimeUnit.SECONDS);
         // Reactor pool
-        NIOReactorPool reactorPool = new NIOReactorPool("Reactor Pool", 4, sharedPool);
+        NIOReactorPool reactorPool = new NIOReactorPool("Reactor Pool", 2, sharedPool);
         NIOConnector connector = new NIOConnector("NIOConnector", reactorPool);
         connector.start();
         NetSystem.getInstance().setConnector(connector);
@@ -128,7 +130,7 @@ public class FdfsStoraged {
         ConnectionFactory frontFactory = new ConnectionFactory() {
             @Override
             protected Connection makeConnection(SocketChannel channel) throws IOException {
-                Connection c = new FastTaskInfo(channel);
+                Connection c = new StorageClientInfo(channel);
                 c.setIdleTimeout(30 * 1000L);//30s
                 return c;
             }

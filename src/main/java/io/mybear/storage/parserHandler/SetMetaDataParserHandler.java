@@ -1,7 +1,7 @@
 package io.mybear.storage.parserHandler;
 
 import io.mybear.storage.StorageDio;
-import io.mybear.storage.storageNio.FastTaskInfo;
+import io.mybear.storage.storageNio.StorageClientInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,12 +10,12 @@ import java.nio.ByteBuffer;
 /**
  * Created by jamie on 2017/7/12.
  */
-public class SetMetaDataParserHandler implements ParserHandler<FastTaskInfo, ByteBuffer> {
+public class SetMetaDataParserHandler implements ParserHandler<StorageClientInfo, ByteBuffer> {
     public static final int SIZE = 32;
     private static final Logger LOGGER = LoggerFactory.getLogger(SetMetaDataParserHandler.class);
 
     @Override
-    public long handleMetaData(FastTaskInfo con, ByteBuffer nioData) {
+    public long handleMetaData(StorageClientInfo con, ByteBuffer nioData) {
         long filenameLen = nioData.getLong(0);
         long meta_buff_length = nioData.getLong(8);
         byte flag = nioData.get(16);
@@ -26,12 +26,12 @@ public class SetMetaDataParserHandler implements ParserHandler<FastTaskInfo, Byt
     }
 
     @Override
-    public void handle(FastTaskInfo con, ByteBuffer nioData) {
+    public void handle(StorageClientInfo con, ByteBuffer nioData) {
 
     }
 
     @Override
-    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleEnd(StorageClientInfo con, ByteBuffer nioData) {
         StorageDio.queuePush(con);
     }
 

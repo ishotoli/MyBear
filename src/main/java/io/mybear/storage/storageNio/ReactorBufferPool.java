@@ -44,6 +44,7 @@ public class ReactorBufferPool {
      */
     public void recycle(ByteBuffer extBuffer) {
         if (Thread.currentThread() == reactorThread) {
+
             freeBuffers.add(extBuffer);
             // reactor线程回收
 
