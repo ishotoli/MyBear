@@ -205,7 +205,7 @@ public class StorageService {
         int store_path_index;
         long nInPackLen;
 
-        pClientInfo = (StorageClientInfo)pTask.arg;
+        pClientInfo = (StorageClientInfo) pTask.arg;
         pFileContext = pClientInfo.fileContext;
 
         nInPackLen = pClientInfo.totalLength - SizeOfConstant.SIZE_OF_TRACKER_HEADER;
@@ -213,13 +213,13 @@ public class StorageService {
         pFileContext.deleteFlag = STORAGE_DELETE_FLAG_NONE;
         if (nInPackLen <= TrackerTypes.FDFS_GROUP_NAME_MAX_LEN) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                "nInPackLen:" + nInPackLen + " < TrackerTypes.FDFS_GROUP_NAME_MAX_LEN "
-                    + TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
+                    "nInPackLen:" + nInPackLen + " < TrackerTypes.FDFS_GROUP_NAME_MAX_LEN "
+                            + TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
             return;
         }
         if (nInPackLen >= pTask.size) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                "nInPackLen:" + nInPackLen + " < pTask.size " + pTask.size);
+                    "nInPackLen:" + nInPackLen + " < pTask.size " + pTask.size);
             return;
         }
         if (TrackerTypes.FDFS_GROUP_NAME_MAX_LEN < SizeOfConstant.SIZE_OF_TRACKER_HEADER) {
@@ -244,20 +244,24 @@ public class StorageService {
                                          int crc32, char[] szFormattedExt, char[] fileName, char[] fullFilename) {
 
         int fileNameLen;
-        int storePathIndex = ((StorageUploadInfo)pClientInfo.fileContext.extra_info).getTrunkInfo().getPath()
-            .getStorePathIndex();
+        int storePathIndex = ((StorageUploadInfo) pClientInfo.fileContext.extra_info).getTrunkInfo().getPath()
+                .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
-            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize, crc32, szFormattedExt, startTime, fileName))
-                < 0) {
+            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize, crc32, szFormattedExt, startTime, fileName)) < 0) {
                 return fileNameLen;
             }
-            if(storePathIndex >= TrunkShared.fdfsStorePaths.getCount()){
+            if (storePathIndex > TrunkShared.fdfsStorePaths.getCount()) {
                 log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName,
-                    "storePathIndex的值错误");
+                        "storePathIndex的值错误");
                 return -1;
             }
-            filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
+            if (storePathIndex == TrunkShared.fdfsStorePaths.getCount()) {
+                filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex - 1], fileName);
+            }
+            if (storePathIndex < TrunkShared.fdfsStorePaths.getCount()) {
+                filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
+            }
             if (!SharedFunc.fileExists(filePathName)) {
                 System.arraycopy(filePathName, 0, fullFilename, 0, filePathName.length());
                 break;
@@ -266,7 +270,7 @@ public class StorageService {
         }
         if (filePathName == null || "".equals(filePathName)) {
             log.error("method={},params={},result={}", "storageGetFilename", storePathIndex + " " + fileName,
-                "Can't generate uniq filename");
+                    "Can't generate uniq filename");
             return -1;
         }
         return filePathName.length();
@@ -287,7 +291,7 @@ public class StorageService {
             char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
             char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
             long maskedFileSize = 0L;
-            StorageUploadInfo storageUploadInfo = (StorageUploadInfo)pClientInfo.fileContext.extra_info;
+            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pClientInfo.fileContext.extra_info;
             FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
             //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
             //int2buff(htonl(g_server_id_in_filename),buff);
@@ -302,7 +306,7 @@ public class StorageService {
             int2buff(crc32, buff, SizeOfConstant.SIZE_OF_INT * 4);
             //需要定义一个全局的Base64Context
             fileNameLen = Base64.base64EncodeEx(TrunkShared.base64Context, buff, SizeOfConstant.SIZE_OF_INT * 5,
-                encoded, false);
+                    encoded, false);
             if (fileNameLen < 0) {
                 return fileNameLen;
             }
@@ -311,7 +315,7 @@ public class StorageService {
                 storageUploadInfo.setIfSubPathAlloced(true);
             }
             char[] fileNewName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13)
-                + FILE_SEPARATOR).toCharArray();
+                    + FILE_SEPARATOR).toCharArray();
             int fileLen = fileNewName.length;
             int flag = 0;
             if (fileNameLen > encoded.length) {
@@ -336,9 +340,9 @@ public class StorageService {
             return fileNameLen;
         } catch (Exception e) {
             log.error(CommonConstant.LOG_FORMAT, "storageGenFilename",
-                "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
-                    + fileSize + " crc32 " + crc32 + " szFormattedExt " + szFormattedExt
-                    + " timeStamp " + timeStamp + "fileName" + fileName, "e{}" + e);
+                    "pFileContext:" + JSON.toJSONString(pClientInfo) + " fileSize "
+                            + fileSize + " crc32 " + crc32 + " szFormattedExt " + szFormattedExt
+                            + " timeStamp " + timeStamp + "fileName" + fileName, "e{}" + e);
             return -1;
         }
     }
@@ -346,7 +350,7 @@ public class StorageService {
     private static long combineRandFileSize(long size, long maskedFileSize) {
 
         int r = (RandomUtil.randomFixedInt() & 0x007FFFFF) | 0x80000000;
-        maskedFileSize = (((long)r) << 32) | size;
+        maskedFileSize = (((long) r) << 32) | size;
         return maskedFileSize;
     }
 
