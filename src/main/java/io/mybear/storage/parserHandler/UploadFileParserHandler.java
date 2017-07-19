@@ -185,7 +185,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
         byte[] bytes = new byte[6];
         nioData.get(bytes, 0, 6);
         // con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, nioData.get(0), 0);
-        con.fileContext.dioExecutorService = StorageDio.g_dio_contexts[0];
+        con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, 0, 0);
         int crc32 = 123456;
         char[] name = new char[256];
         char[] fileName = new char[256];

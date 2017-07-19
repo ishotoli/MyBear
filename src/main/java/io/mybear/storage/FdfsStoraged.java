@@ -94,8 +94,6 @@ public class FdfsStoraged {
         StorageDio.init();
         TrunkShared.trunkSharedInit();
         socketServer(bindAddr, StorageGlobal.G_SERVER_PORT);
-
-
     }
 
     static boolean storageLoadPaths(IniFileReader iniFileReader) {
