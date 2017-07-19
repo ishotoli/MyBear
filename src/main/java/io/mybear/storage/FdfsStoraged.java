@@ -79,8 +79,6 @@ public class FdfsStoraged {
             usage(args[0]);
             return;
         }
-        TrunkShared.trunkSharedInit();
-        StorageDio.init();
         confFilename = args[0];
         Path conf = ProcessAction.getBasePathFromConfFile(confFilename);
         Path pidFilename = Paths.get(g_fdfs_base_path, "/data/fdfs_storaged.pid");
@@ -93,6 +91,8 @@ public class FdfsStoraged {
             return;
         }
         String bindAddr = storageFuncInit(conf);
+        StorageDio.init();
+        TrunkShared.trunkSharedInit();
         socketServer(bindAddr, StorageGlobal.G_SERVER_PORT);
 
 
