@@ -17,7 +17,7 @@ public class TimeUtil {
 
     public static final void update() {
         CURRENT_TIME = System.currentTimeMillis();
-        LOGGER.debug("{}", CURRENT_TIME);
+        //   LOGGER.debug("{}", CURRENT_TIME);
     }
 
 }

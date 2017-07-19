@@ -5,7 +5,7 @@ import io.mybear.common.StorageDioThreadData;
 import io.mybear.common.StorageFileContext;
 import io.mybear.common.StorageUploadInfo;
 import io.mybear.storage.storageNio.Connection;
-import io.mybear.storage.storageNio.FastTaskInfo;
+import io.mybear.storage.storageNio.StorageClientInfo;
 import io.mybear.storage.storageNio.TimeUtil;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import org.slf4j.Logger;
@@ -50,7 +50,7 @@ public class StorageDio {
         }
         int context_count = threads_count_per_path * g_fdfs_store_paths.length;
         g_dio_contexts = new ExecutorService[context_count];
-        for (int i = 0; i < g_dio_contexts.length; i++) {
+        for (int i = 0; i < 2; i++) {
             // ArrayBlockingQueue
             g_dio_contexts[i] = Executors.newSingleThreadExecutor();
         }
@@ -66,7 +66,7 @@ public class StorageDio {
 
     }
 
-    public static ExecutorService get_thread_index(FastTaskInfo pTask, final int store_path_index, final char file_op) {
+    public static ExecutorService getThreadIndex(StorageClientInfo pTask, final int store_path_index, final int file_op) {
         ExecutorService[] contexts;
         int count;
         StorageDioThreadData pThreadData = g_dio_thread_data[store_path_index];
@@ -86,16 +86,15 @@ public class StorageDio {
     }
 
     public static boolean queuePush(Connection pTask) {
-        int index = 0;
-//        StorageFileContext fileContext = pTask.getStorageClientInfo().file_context;
-//        index=fileContext.dio_thread_index;
-        g_dio_contexts[index].execute((FastTaskInfo) pTask);
+        g_dio_contexts[0].execute((StorageClientInfo) pTask);
         return true;
     }
 
-    public static int dio_read_file(FastTaskInfo pTask) {
-        StorageFileContext pFileContext = pTask.file_context;
+
+    public static int dio_read_file(StorageClientInfo pTask) {
+        StorageFileContext pFileContext = pTask.fileContext;
         FileChannel channel = pFileContext.fileChannel;
+        if (!channel.isOpen()) return 0;
         int result = 0;
         long end = 0;
         do {
@@ -114,8 +113,10 @@ public class StorageDio {
                 if (got != 0) {
                     pTask.setLastWriteTime(TimeUtil.currentTimeMillis());
                     pFileContext.offset += got;
+                } else {
+//                    System.out.println("hhhh");
                 }
-
+                nioNotify(pTask);
             } catch (IOException e) {
                 result = -1;
                 e.printStackTrace();
@@ -127,14 +128,13 @@ public class StorageDio {
 //            }
         } while (false);
 
-        if (pTask.offset < end) {
-            //  pTask.enableWrite(false);
-            StorageDio.queuePush(pTask);
-        } else {
+        if (pTask.fileContext.offset == end) {
+            // pTask.flagData = Boolean.FALSE;
             try {
                 pFileContext.fileChannel.close();
-                if (pFileContext.done_callback != null)
-                    pFileContext.done_callback.apply(pTask);
+                if (pFileContext.done_callback != null) {
+                    pFileContext.done_callback.accept(pTask);
+                }
                 pTask.close("任务完成");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -146,9 +146,15 @@ public class StorageDio {
 
     }
 
-    public static int dio_write_file(FastTaskInfo pTask) {
+    public static void nioNotify(StorageClientInfo pTask) {
+        pTask.flagData = Boolean.TRUE;
+
+    }
+
+
+    public static int dio_write_file(StorageClientInfo pTask) {
         if (!pTask.getChannel().isOpen()) return -1;
-        StorageFileContext pFileContext = pTask.file_context;
+        StorageFileContext pFileContext = pTask.fileContext;
         int result = 0;
         FileChannel channel = pFileContext.fileChannel;
         StorageUploadInfo uploadInfo = (StorageUploadInfo) pFileContext.extra_info;
@@ -157,10 +163,7 @@ public class StorageDio {
             if (channel == null || !channel.isOpen()) {
                 FileBeforeOpenCallback callback = uploadInfo.getBeforeOpenCallback();
                 if (callback != null) {
-                    result = callback.apply(pTask);
-                    if (result != 0) {
-                        break;
-                    }
+                    callback.accept(pTask);
                 }
             }
             try {
@@ -188,7 +191,7 @@ public class StorageDio {
                 LOGGER.info("任务完成");
                 pFileContext.fileChannel.close();
                 if (pFileContext.done_callback != null)
-                    pFileContext.done_callback.apply(pTask);
+                    pFileContext.done_callback.accept(pTask);
             } catch (IOException e) {
                 e.printStackTrace();
                 result = -1;
@@ -232,85 +235,80 @@ public class StorageDio {
      * @param fileContext
      * @return
      */
-    public int dio_truncate_file(FastTaskInfo pTask, StorageFileContext fileContext) {
-        int result = 0;
+    public void dio_truncate_file(StorageClientInfo pTask, StorageFileContext fileContext) throws IOException {
         try {
             do {
                 StorageUploadInfo uploadInfo = ((StorageUploadInfo) fileContext.extra_info);
                 if (!fileContext.fileChannel.isOpen()) {
                     FileBeforeOpenCallback callBack = uploadInfo.getBeforeOpenCallback();
                     if (callBack != null) {
-                        result = callBack.apply(pTask);
-                        if (result != 0) {
-                            break;
-                        }
+                        callBack.accept(pTask);
                     }
                     dio_open_file(fileContext);
                 }
                 fileContext.fileChannel.truncate(fileContext.offset);
                 if (uploadInfo.getBeforeCloseCallback() != null) {
-                    result = uploadInfo.getBeforeCloseCallback().apply(pTask);
+                    uploadInfo.getBeforeCloseCallback().accept(pTask);
                 }
 
 	/* file write done, close it */
                 fileContext.fileChannel.close();
                 fileContext.fileChannel = null;
                 if (fileContext.done_callback == null) {
-                    result = fileContext.done_callback.apply(pTask);
+                    fileContext.done_callback.accept(pTask);
                 }
-                return 0;
+                return;
             } while (false);
         } catch (IOException e) {
             e.printStackTrace();
-            result = -1;
+            //result = -1;
         }
 //        pTask.cx
 //        pClientInfo -> clean_func(pTask);
 
         if (fileContext.done_callback != null) {
-            fileContext.done_callback.apply(pTask);
+            fileContext.done_callback.accept(pTask);
         }
-        return result;
     }
 
-    public int dio_delete_normal_file(FastTaskInfo fastTaskInfo) {
-        StorageFileContext fileContext = fastTaskInfo.file_context;
+    public void dio_delete_normal_file(StorageClientInfo StorageClientInfo) {
+        StorageFileContext fileContext = StorageClientInfo.fileContext;
         try {
             Files.delete(fileContext.filename);
         } catch (IOException e) {
             e.printStackTrace();
-            fileContext.log_callback.accept(fileContext);
+            fileContext.log_callback.accept(StorageClientInfo);
         }
-        return fileContext.done_callback.apply(fastTaskInfo);
+        fileContext.done_callback.accept(StorageClientInfo);
     }
 
-    public int dio_delete_trunk_file(FastTaskInfo pTask) {
+    public int dio_delete_trunk_file(StorageClientInfo pTask) {
         return 0;
     }
 
-    public int dio_discard_file(FastTaskInfo pTask) {
+    public int dio_discard_file(StorageClientInfo pTask) {
 
 
         return 0;
     }
 
-    public void dio_read_finish_clean_up(FastTaskInfo pTask) {
+    public void dio_read_finish_clean_up(StorageClientInfo pTask) {
 
     }
 
-    public void dio_write_finish_clean_up(FastTaskInfo pTask) {
+    public void dio_write_finish_clean_up(StorageClientInfo pTask) {
 
     }
 
-    public void dio_append_finish_clean_up(FastTaskInfo pTask) {
+    public void dio_append_finish_clean_up(StorageClientInfo pTask) {
 
     }
 
-    public void dio_trunk_write_finish_clean_up(FastTaskInfo pTask) {
+    public void dio_trunk_write_finish_clean_up(StorageClientInfo pTask) {
 
     }
 
-    public void dio_modify_finish_clean_up(FastTaskInfo pTask) {
+    public void dio_modify_finish_clean_up(StorageClientInfo pTask) {
 
     }
 
@@ -319,16 +317,16 @@ public class StorageDio {
 //
 //    }
 //
-//    public int dio_check_trunk_file_when_upload(FastTaskInfo pTask) {
+//    public int dio_check_trunk_file_when_upload(StorageClientInfo pTask) {
 //
 //    }
 //
-//    public int dio_check_trunk_file_when_sync(FastTaskInfo pTask) {
+//    public int dio_check_trunk_file_when_sync(StorageClientInfo pTask) {
 //
 //    }
 
-    public int dio_write_chunk_header(FastTaskInfo pTask) {
-        StorageFileContext fileContext = pTask.file_context;
+    public int dio_write_chunk_header(StorageClientInfo pTask) {
+        StorageFileContext fileContext = pTask.fileContext;
         StorageUploadInfo uploadInfo = (StorageUploadInfo) fileContext.extra_info;
 //        FDFSTrunkHeader trunkHeader = new FDFSTrunkHeader();
         ByteBuffer trunkHeader = ByteBuffer.allocate(17 + 6 + 1);

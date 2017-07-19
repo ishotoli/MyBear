@@ -34,7 +34,7 @@ import java.io.IOException;
 public final class SystemConfig {
     public static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
     public static String SYS_HOME = "MYCAT_HOME";
-    private int frontSocketSoRcvbuf = 1024 * 1024;
+    private int frontSocketSoRcvbuf = 1024 * 1024 * 10;
     private int frontSocketSoSndbuf = 4 * 1024 * 1024;
     private int backSocketSoRcvbuf = 4 * 1024 * 1024;// mysql 5.6
     // net_buffer_length

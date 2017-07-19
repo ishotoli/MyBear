@@ -7,7 +7,7 @@ import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.utils.Base64;
 import io.mybear.common.utils.HashUtil;
 import io.mybear.storage.storageNio.ByteBufferArray;
-import io.mybear.storage.storageNio.FastTaskInfo;
+import io.mybear.storage.storageNio.StorageClientInfo;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.FdfsSharedFunc;
 import io.mybear.tracker.TrackerTypes;
@@ -28,7 +28,7 @@ import static io.mybear.common.utils.BasicTypeConversionUtil.long2buff;
  */
 public class StorageService {
     public static final String ACCESS_LOG_ACTION_UPLOAD_FILE = "upload";
-    public static final String ACCESS_LOG_ACTION_DOWNLOAD_FILE = "download";
+    public static final String ACCESS_LOG_ACTION_DOWNLOAD_FILE = "downloadHead";
     public static final String ACCESS_LOG_ACTION_DELETE_FILE = "delete";
     public static final String ACCESS_LOG_ACTION_GET_METADATA = "get_metadata";
     public static final String ACCESS_LOG_ACTION_SET_METADATA = "set_metadata";
@@ -156,19 +156,19 @@ public class StorageService {
      * @return
      */
     public static int storageGetFilename(StorageClientInfo pClientInfo, int startTime, long fileSize,
-                                          int crc32, char[] szFormattedExt, char[] fileName,char[] fullFilename) {
+                                         int crc32, char[] szFormattedExt, char[] fileName, char[] fullFilename) {
 
         int fileNameLen;
-        int storePathIndex = ((StorageUploadInfo) pClientInfo.getFileContext().extra_info).getTrunkInfo().getPath()
+        int storePathIndex = ((StorageUploadInfo) pClientInfo.fileContext.extra_info).getTrunkInfo().getPath()
                 .getStorePathIndex();
         String filePathName = null;
         for (int i = 0; i < 10; i++) {
-            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize,crc32,szFormattedExt, startTime,fileName)) < 0) {
+            if ((fileNameLen = storageGenFilename(pClientInfo, fileSize, crc32, szFormattedExt, startTime, fileName)) < 0) {
                 return fileNameLen;
             }
             filePathName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[storePathIndex], fileName);
             if (!FdfsSharedFunc.fileExists(filePathName)) {
-                System.arraycopy(filePathName,0,fullFilename,0,filePathName.length());
+                System.arraycopy(filePathName, 0, fullFilename, 0, filePathName.length());
                 break;
             }
             filePathName = "";
@@ -196,7 +196,7 @@ public class StorageService {
             char[] buff = new char[SizeOfConstant.SIZE_OF_INT * 5];
             char[] encoded = new char[SizeOfConstant.SIZE_OF_INT * 8 + 1];
             long maskedFileSize = 0L;
-            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pClientInfo.getFileContext().extra_info;
+            StorageUploadInfo storageUploadInfo = (StorageUploadInfo) pClientInfo.fileContext.extra_info;
             FdfsTrunkFullInfo pTrunkInfo = storageUploadInfo.getTrunkInfo();
             //@TODO 这里需要做 g_server_id_in_filename的取值 和 htonl的转换
             //int2buff(htonl(g_server_id_in_filename),buff);
@@ -248,6 +248,7 @@ public class StorageService {
             return -1;
         }
     }
+
 
     private static long combineRandFileSize(long size, long maskedFileSize) {
         Random random = new Random(32767);

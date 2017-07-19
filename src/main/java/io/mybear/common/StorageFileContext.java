@@ -1,9 +1,12 @@
 package io.mybear.common;
 
+import io.mybear.storage.storageNio.StorageClientInfo;
+
 import java.io.Serializable;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -24,7 +27,7 @@ public class StorageFileContext implements Serializable{
     public StandardOpenOption openFlags;           //open file flags
     public int[] fileHashCodes;   //file hash code int fileHashCodes[4]
     public long crc32;   //file content crc32 signature
-    public String MD5CTX;//MD5CTX md5_context;
+    public MessageDigest MD5CTX;//MD5CTX md5_context;
 
     public Object extra_info;//StorageUploadInfo or StorageSetMetaInfo
 
@@ -38,8 +41,10 @@ public class StorageFileContext implements Serializable{
     public long start;  //the start offset of file
     public long end;    //the end offset of file
     public long offset; //the current offset of file
-    public FileDealDoneCallback done_callback;
-    public DeleteFileLogCallback log_callback;
+    public FileDealDoneCallback<StorageClientInfo> done_callback;
+    public DeleteFileLogCallback<StorageClientInfo> log_callback;
+
+
 
     public long tvDealStart; //task deal start tv for access log
 
