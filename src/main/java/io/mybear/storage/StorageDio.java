@@ -22,6 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.CRC32;
 
+import static io.mybear.storage.StorageGlobal.g_disk_reader_threads;
+import static io.mybear.storage.StorageGlobal.g_disk_writer_threads;
 import static io.mybear.storage.trunkMgr.TrunkShared.*;
 
 /**
@@ -33,8 +35,7 @@ public class StorageDio {
     public static final int _FILE_TYPE_SLAVE = 4;
     public static final int _FILE_TYPE_REGULAR = 8;
     public static final int _FILE_TYPE_LINK = 16;
-    public static final int g_disk_reader_threads = 1;
-    public static final int g_disk_writer_threads = 1;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageDio.class);
     public static Object g_dio_thread_lock = new Object();
     public static ExecutorService[] g_dio_contexts;
@@ -50,7 +51,7 @@ public class StorageDio {
         }
         int context_count = threads_count_per_path * g_fdfs_store_paths.length;
         g_dio_contexts = new ExecutorService[context_count];
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < g_dio_contexts.length; i++) {
             // ArrayBlockingQueue
             g_dio_contexts[i] = Executors.newSingleThreadExecutor();
         }
@@ -58,12 +59,10 @@ public class StorageDio {
         for (int i = 0; i < g_dio_thread_data.length; i++) {
             StorageDioThreadData threadData = g_dio_thread_data[i] = new StorageDioThreadData();
             threadData.count = threads_count_per_path;
-            threadData.contexts = Arrays.copyOfRange(g_dio_contexts, i, i * threads_count_per_path);
+            threadData.contexts = Arrays.copyOfRange(g_dio_contexts, i, i + g_disk_reader_threads);
             threadData.reader = threadData.contexts;
-            threadData.writer = Arrays.copyOfRange(g_dio_contexts, i * threads_count_per_path, i * threads_count_per_path + g_disk_reader_threads);
+            threadData.writer = Arrays.copyOfRange(g_dio_contexts, i + g_disk_reader_threads, i + g_disk_reader_threads + g_disk_writer_threads);
         }
-
-
     }
 
     public static ExecutorService getThreadIndex(StorageClientInfo pTask, final int store_path_index, final int file_op) {
@@ -151,6 +150,57 @@ public class StorageDio {
 
     }
 
+//
+//    public static int dio_write_file(StorageClientInfo pTask) {
+//        if (!pTask.getChannel().isOpen()) return -1;
+//        StorageFileContext pFileContext = pTask.fileContext;
+//        int result = 0;
+//        FileChannel channel = pFileContext.fileChannel;
+//        StorageUploadInfo uploadInfo = (StorageUploadInfo) pFileContext.extra_info;
+//        long end = pFileContext.end;
+//        do {
+//            if (channel == null || !channel.isOpen()) {
+//                FileBeforeOpenCallback callback = uploadInfo.getBeforeOpenCallback();
+//                if (callback != null) {
+//                    callback.accept(pTask);
+//                }
+//            }
+//            try {
+//                dio_open_file(pFileContext);
+//                channel = pFileContext.fileChannel;
+//                pFileContext.offset += channel.transferFrom(pTask.getChannel(), pFileContext.offset, end - pFileContext.offset);
+//            } catch (IOException e) {
+//                result = -1;
+//                e.printStackTrace();
+//                LOGGER.error("");
+//            }
+//            synchronized (g_dio_thread_lock) {
+////                g_storage_stat.total_file_write_count++;
+////                if (result == 0) {
+////                    g_storage_stat.success_file_write_count++;
+////                }
+//            }
+//            if (result != 0) break;
+//        } while (false);
+//        if (pFileContext.offset < end) {
+////            pTask.enableWrite(false);
+////StorageDio.queuePush(pTask);
+//            nioNotify(pTask);
+//            LOGGER.debug("切换写");
+//        } else {
+//            try {
+//                LOGGER.info("任务完成");
+//                pFileContext.fileChannel.close();
+//                if (pFileContext.done_callback != null)
+//                    pFileContext.done_callback.accept(pTask);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                result = -1;
+//            }
+//        }
+//
+//        return result;
+//    }
 
     public static int dio_write_file(StorageClientInfo pTask) {
         if (!pTask.getChannel().isOpen()) return -1;
@@ -169,7 +219,8 @@ public class StorageDio {
             try {
                 dio_open_file(pFileContext);
                 channel = pFileContext.fileChannel;
-                pFileContext.offset += channel.transferFrom(pTask.getChannel(), pFileContext.offset, end - pFileContext.offset);
+                pTask.readBuffer.flip();
+                pFileContext.offset += channel.write(pTask.readBuffer);
             } catch (IOException e) {
                 result = -1;
                 e.printStackTrace();
@@ -185,7 +236,9 @@ public class StorageDio {
         } while (false);
         if (pFileContext.offset < end) {
 //            pTask.enableWrite(false);
-            StorageDio.queuePush(pTask);
+//StorageDio.queuePush(pTask);
+            nioNotify(pTask);
+            // LOGGER.debug("切换写");
         } else {
             try {
                 LOGGER.info("任务完成");

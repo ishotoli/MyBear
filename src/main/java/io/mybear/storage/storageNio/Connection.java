@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -182,7 +183,6 @@ public abstract class Connection implements ClosableConnection {
     private final void recycle(ByteBuffer buffer) {
         NetSystem.getInstance().getBufferPool().recycle(buffer);
     }
-
 
 
     public boolean isConnected() {
@@ -534,7 +534,7 @@ public abstract class Connection implements ClosableConnection {
         if (readBuffer != null && !isClosed) {//异步读函数,没有readBuffer意味着不需要处理上传数据,消除重复读
             if (packetState == upload) {
                 if (flagData == Boolean.TRUE) {
-                    LOGGER.debug("flagData= Boolean.False;处理上传数据,需要通知dio,dio每处理一次通知完毕后,把flagData == Boolean.False");
+                    LOGGER.debug("flagData= Boolean.False;处理上传数据,需要通知dio,dio每处理一次通知完毕后,把flagData == Boolean.True");
                     return;
                 } else {
                     LOGGER.debug("正在上传处理,不用通知");
@@ -662,16 +662,22 @@ public abstract class Connection implements ClosableConnection {
     protected void asynRead() throws IOException {
         if (readBuffer != null && !isClosed) {//异步读函数,没有readBuffer意味着不需要处理上传数据,消除重复读
             if (packetState == upload) {
+                //LOGGER.debug("数据来了");
                 if (flagData == Boolean.TRUE) {
-                    LOGGER.debug("flagData= Boolean.False;处理上传数据,需要通知dio,dio每处理一次通知完毕后,把flagData == Boolean.False");
+                    // LOGGER.debug("flagData= Boolean.False;处理上传数据,需要通知dio,
+                    // 先 flagData = Boolean.FALSE;这一步很关键,再放入队列,
+                    // dio每处理一次通知完毕后,把flagData == Boolean.True");
                     int got;
                     this.readBuffer.clear();//每次进入这里都要清除信息
+                    assert (this.readBuffer instanceof MappedByteBuffer);
                     do {
                         got = this.getChannel().read(this.readBuffer);
                         if (got == -1) {
                             close("socket被关闭");
                         }
+                        //this.offset+=got;
                     } while (got > 0);
+                    flagData = Boolean.FALSE;
                     UploadFileParserHandler.upload(this, channel);
                     return;
                 } else {
@@ -694,10 +700,6 @@ public abstract class Connection implements ClosableConnection {
             }
             readBuffer = null;
             disableRead();
-            /**
-             * 不再监控异步读的超时
-             */
-            NetSystem.getInstance().removeConnection(this);
         } else {
             UploadFileParserHandler.upload(this, channel);
         }
@@ -727,6 +729,7 @@ public abstract class Connection implements ClosableConnection {
     public void setHandler(NIOHandler handler) {
         this.handler = handler;
     }
+
     public State getState() {
         return state;
     }
