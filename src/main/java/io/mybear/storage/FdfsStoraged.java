@@ -105,8 +105,9 @@ public class FdfsStoraged {
         long buff_size;
         long rotate_access_log_size;
         long rotate_error_log_size;
+        //初始化路径信息
+        StorageFunc.storageLoadPaths(iniContext);
         return pBindAddr;
-
     }
 
     static void socketServer(String g_bind_addr, int g_server_port) throws IOException {

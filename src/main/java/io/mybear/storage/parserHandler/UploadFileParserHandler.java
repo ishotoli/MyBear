@@ -3,8 +3,10 @@ package io.mybear.storage.parserHandler;
 
 import io.mybear.common.*;
 import io.mybear.storage.StorageDio;
+import io.mybear.storage.StorageService;
 import io.mybear.storage.storageNio.Connection;
 import io.mybear.storage.storageNio.StorageClientInfo;
+import io.mybear.storage.storageNio.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,7 +176,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
         con.fileContext.extra_info = uploadInfo;
         FdfsTrunkFullInfo trunkFullInfo = new FdfsTrunkFullInfo();
         uploadInfo.setTrunkInfo(trunkFullInfo);
-        FDFSTrunkPathInfo pathInfo = new FDFSTrunkPathInfo();
+        FdfsTrunkPathInfo pathInfo = new FdfsTrunkPathInfo();
         trunkFullInfo.setPath(pathInfo);
         uploadInfo.getTrunkInfo().getPath().setStorePathIndex(nioData.get(0));
         long fileSize = nioData.getLong(1);
@@ -189,7 +191,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
         int crc32 = 123456;
         char[] name = new char[256];
         char[] fileName = new char[256];
-        //StorageService.storageGetFilename(con, (int) TimeUtil.currentTimeMillis(), fileSize, crc32, new String(bytes).toCharArray(), name, fileName);
+        StorageService.storageGetFilename(con, (int) TimeUtil.currentTimeMillis(), fileSize, crc32, new String(bytes).toCharArray(), name, fileName);
         con.fileContext.filename = Paths.get("d:/" + Integer.valueOf(ThreadLocalRandom.current().nextInt()).toString().substring(1, 5) + ".jar");
         con.fileContext.openFlags = StandardOpenOption.APPEND;
         con.fileContext.done_callback = (c) -> {

@@ -1,6 +1,7 @@
 package io.mybear.storage;
 
 import io.mybear.common.FDFSStorageServer;
+import io.mybear.common.FdfsStorePathInfo;
 import io.mybear.common.IniFileReader;
 
 import java.io.IOException;
@@ -102,7 +103,7 @@ public class StorageGlobal {
     public static int g_upload_priority;
     public static long g_up_time;
     static IniFileReader iniReader;
-
+    public static FdfsStorePathInfo[] fdfsStorePathInfo;
     public static void init(String conf_filename) throws IOException {
         iniReader = new IniFileReader(conf_filename);
         BASE_PATH = Paths.get(iniReader.getStrValue("base_path"));
