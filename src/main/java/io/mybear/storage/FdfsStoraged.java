@@ -4,6 +4,7 @@ import com.sun.management.UnixOperatingSystemMXBean;
 import io.mybear.common.*;
 import io.mybear.storage.fdhtClient.FdhtClient;
 import io.mybear.storage.storageNio.*;
+import io.mybear.storage.storageNio.StorageClientInfo;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.types.TrackerServerGroup;
 import org.slf4j.Logger;
@@ -190,7 +191,8 @@ public class FdfsStoraged {
                 LOGGER.info("conf file \\\"%s\\\", invalid subdir_count: %d", filename, g_subdir_count_per_path);
                 result = -1;
             }
-            if (!storageLoadPaths(iniContext)) {
+            //初始化路径信息
+            if (StorageFunc.storageLoadPaths(iniContext) != 0) {
                 break;
             }
             loadLogLevel(iniContext);
@@ -606,9 +608,7 @@ public class FdfsStoraged {
 //            if (pBindAddr == null) pBindAddr = "";
 //            else LOGGER.info("");
 
-
         return pBindAddr;
-
     }
 
 

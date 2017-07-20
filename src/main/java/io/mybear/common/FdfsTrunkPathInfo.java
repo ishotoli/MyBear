@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * Created by zkn on 2017/7/10.
  */
-public class FDFSTrunkPathInfo implements Serializable{
+public class FdfsTrunkPathInfo implements Serializable{
     private static final long serialVersionUID = 5490120279817188091L;
     /**
      *  //store which path as Mxx

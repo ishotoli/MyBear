@@ -11,10 +11,13 @@ import static io.mybear.tracker.TrackerTypes.*;
 import static org.csource.fastdfs.ClientGlobal.DEFAULT_CONNECT_TIMEOUT;
 import static org.csource.fastdfs.ClientGlobal.DEFAULT_NETWORK_TIMEOUT;
 
+import java.io.File;
+
 /**
  * Created by jamie on 2017/6/21.
  */
 public class FdfsGlobal {
+
     public static final int FDFS_FILE_EXT_NAME_MAX_LEN = 6;
     public static final String g_fdfs_base_path = "/tmp";
     public static int g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
@@ -114,4 +117,5 @@ public class FdfsGlobal {
     public static int g_upload_priority = DEFAULT_UPLOAD_PRIORITY;
     public static long g_up_time = 0;
     public static int g_log_file_keep_days = 0;
+    public static String g_fdfs_base_path = File.separatorChar+"tmp";
 }
