@@ -10,6 +10,15 @@ import io.mybear.tracker.SharedFunc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static io.mybear.storage.StorageGlobal.g_subdir_count_per_path;
+import static io.mybear.tracker.SharedFunc.isDir;
+import static io.mybear.tracker.TrackerTypes.FDFS_STORAGE_DATA_DIR_FORMAT;
+
 /**
  * Created by jamie on 2017/6/21.
  */
@@ -26,7 +35,7 @@ public class StorageFunc {
         StorageGlobal.g_path_space_list = new FdfsStorePathInfo[TrunkShared.fdfsStorePaths.getCount()];
         if (StorageGlobal.g_path_space_list.length == 0) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPaths",
-                JSON.toJSON(pItemContext) + " count " + TrunkShared.fdfsStorePaths.getCount(), "count值为0");
+                    JSON.toJSON(pItemContext) + " count " + TrunkShared.fdfsStorePaths.getCount(), "count值为0");
             return -1;
         }
         return 0;
@@ -34,22 +43,22 @@ public class StorageFunc {
 
     public static int storageLoadPathsFromConfFile(IniFileReader pItemContext) {
         char[] pPath = pItemContext.getStrValue("base_path") == null ? null : pItemContext.getStrValue("base_path")
-            .toCharArray();
+                .toCharArray();
         if (pPath == null) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPaths",
-                JSON.toJSON(pItemContext), "base_path值为null");
+                    JSON.toJSON(pItemContext), "base_path值为null");
             return -1;
         }
         pPath = SharedFunc.chopPath(pPath);
         FdfsGlobal.g_fdfs_base_path = new String(pPath);
         if (!SharedFunc.fileExists(FdfsGlobal.g_fdfs_base_path)) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFile",
-                JSON.toJSON(pItemContext), FdfsGlobal.g_fdfs_base_path + "路径不存在");
+                    JSON.toJSON(pItemContext), FdfsGlobal.g_fdfs_base_path + "路径不存在");
             return -1;
         }
-        if (!SharedFunc.isDir(FdfsGlobal.g_fdfs_base_path)) {
+        if (!isDir(FdfsGlobal.g_fdfs_base_path)) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFile",
-                JSON.toJSON(pItemContext), FdfsGlobal.g_fdfs_base_path + " is not a directory!");
+                    JSON.toJSON(pItemContext), FdfsGlobal.g_fdfs_base_path + " is not a directory!");
             return -1;
         }
         return storageLoadPathsFromConfFileEx(pItemContext, null, true);
@@ -63,8 +72,8 @@ public class StorageFunc {
         TrunkShared.fdfsStorePaths.setCount(pItemContext.getIntValue("store_path_count", 1));
         if (TrunkShared.fdfsStorePaths.getCount() <= 0) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFileEx",
-                JSON.toJSON(pItemContext),
-                String.format("store_path_count: %d is invalid", TrunkShared.fdfsStorePaths.getCount()));
+                    JSON.toJSON(pItemContext),
+                    String.format("store_path_count: %d is invalid", TrunkShared.fdfsStorePaths.getCount()));
             return -1;
         }
         store_paths = new String[TrunkShared.fdfsStorePaths.getCount()];
@@ -73,16 +82,16 @@ public class StorageFunc {
         if (pPath == null || "".equals(pPath.trim())) {
             if (!bUseBasePath) {
                 log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFileEx",
-                    JSON.toJSON(pItemContext),
-                    "conf file must have item store_path0");
+                        JSON.toJSON(pItemContext),
+                        "conf file must have item store_path0");
                 return -1;
             }
             pPath = FdfsGlobal.g_fdfs_base_path;
         }
         if (pPath == null || "".equals(pPath.trim())) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFileEx",
-                JSON.toJSON(pItemContext),
-                "conf file must have item pPath");
+                    JSON.toJSON(pItemContext),
+                    "conf file must have item pPath");
             return -1;
         }
         store_paths[0] = pPath;
@@ -92,23 +101,23 @@ public class StorageFunc {
             pPath = pItemContext.getStrValue(item_name);
             if (pPath == null || "".equals(pPath.trim())) {
                 log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFileEx",
-                    JSON.toJSON(pItemContext),
-                    String.format("conf file must have item %s", item_name));
+                        JSON.toJSON(pItemContext),
+                        String.format("conf file must have item %s", item_name));
                 err_no = -1;
                 break;
             }
             pPath = new String(SharedFunc.chopPath(pPath.toCharArray()));
             if (!SharedFunc.fileExists(pPath)) {
                 log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFileEx",
-                    JSON.toJSON(pItemContext),
-                    String.format("can't be accessed %s", pPath));
+                        JSON.toJSON(pItemContext),
+                        String.format("can't be accessed %s", pPath));
                 err_no = -1;
                 break;
             }
-            if (!SharedFunc.isDir(pPath)) {
+            if (!isDir(pPath)) {
                 log.error(CommonConstant.LOG_FORMAT, "storageLoadPathsFromConfFileEx",
-                    JSON.toJSON(pItemContext),
-                    String.format("conf file must have item %s", pPath));
+                        JSON.toJSON(pItemContext),
+                        String.format("conf file must have item %s", pPath));
                 err_no = -1;
                 break;
             }
@@ -121,5 +130,62 @@ public class StorageFunc {
             return 0;
         }
         return err_no;
+    }
+
+    public static boolean storageMakeDataDirs(String pBasePath) {
+        Path data_path;//256
+        Path dir_name;//9
+        Path sub_name;//9
+        String min_sub_path;//16
+        String max_sub_path;//16
+        data_path = Paths.get(pBasePath, "data");
+        if (!Files.exists(data_path)) {
+            try {
+                Files.createDirectory(data_path);
+            } catch (IOException e) {
+                e.printStackTrace();
+                log.error(String.format("mkdir \"%s\" fail, error info: %s", data_path, e.getLocalizedMessage()));
+                return false;
+            }
+        }
+        min_sub_path = String.format(FDFS_STORAGE_DATA_DIR_FORMAT + "/" + FDFS_STORAGE_DATA_DIR_FORMAT, 0, 0);
+        max_sub_path = String.format(FDFS_STORAGE_DATA_DIR_FORMAT + "/" + FDFS_STORAGE_DATA_DIR_FORMAT, g_subdir_count_per_path - 1, g_subdir_count_per_path - 1);
+        if (SharedFunc.fileExists(data_path + min_sub_path) && SharedFunc.fileExists(data_path + max_sub_path)) {
+            return true;
+        }
+        int i, k;
+        log.info(String.format("data path: %s, mkdir sub dir...\n", data_path.toString()));
+        for (i = 0; i < g_subdir_count_per_path; i++) {
+            dir_name = data_path.resolve(String.format(FDFS_STORAGE_DATA_DIR_FORMAT, i));
+            log.info(String.format("mkdir data path: %s ...\n", dir_name.toString()));
+            try {
+                if (!(Files.exists(dir_name) && Files.isDirectory(data_path))) {
+                    Files.createDirectory(dir_name);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                log.error(String.format("mkdir \"%s/%s\" fail ", data_path.toString(), dir_name.toString()));
+                return false;
+            }
+            for (k = 0; k < g_subdir_count_per_path; k++) {
+                sub_name = dir_name.resolve(String.format(FDFS_STORAGE_DATA_DIR_FORMAT, k));
+                try {
+                    if (!(Files.exists(sub_name) && Files.isDirectory(sub_name))) {
+                        Files.createDirectory(sub_name);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    log.error(String.format("mkdir \"%s/%s\" fail ", data_path.toString(), dir_name.toString()));
+                    return false;
+                }
+            }
+        }
+        log.info(String.format("data path: %s, mkdir sub dir done.\n", data_path.toString()));
+        return true;
+    }
+
+    public static void main(String[] args) {
+        g_subdir_count_per_path = 16;
+        storageMakeDataDirs("D:\\fastdfs\\");
     }
 }
