@@ -1,10 +1,10 @@
 package io.mybear.common;
 
-import java.util.function.Function;
+import io.mybear.storage.storageNio.StorageClientInfo;
 
 /**
  * Created by jamie on 2017/6/23.
  */
 @FunctionalInterface
-public interface TaskFinishCallback extends Function<FastTaskInfo, Integer> {
+public interface TaskFinishCallback extends ThrowingConsumer<StorageClientInfo> {
 }

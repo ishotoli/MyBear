@@ -1,0 +1,83 @@
+package io.mybear.storage.storageNio;
+
+import java.nio.ByteBuffer;
+import java.util.LinkedList;
+
+/**
+ * 此BufferPool主要是为单一线程使用，即Reactor线程专用的BufferPool，因此读取数据不用加锁，
+ * 如果是其他线程来获取或归还数据，则用Volatile的机制和延迟技术以获取最高的性能
+ *
+ * @author wuzhih
+ */
+public class ReactorBufferPool {
+    // 属于哪个reactor thread
+    private final Thread reactorThread;
+    // Reactor线程归还的Buffer
+    private final LinkedList<ByteBuffer> freeBuffers = new LinkedList<ByteBuffer>();
+    // 共享ByteBuffer池，真实分配ByteBuffer的地方
+    private final SharedBufferPool sharedBufferPool;
+    // 最多存放多少个byteBuffer，超过部分则放入共享池
+    private final int maxFreeCount;
+    // 池化的ByteBufferArray对象，为了降低创建的频率
+    //  private final LinkedList<ByteBufferArray> extByteBufferPool = new LinkedList<ByteBufferArray>();
+
+    public ReactorBufferPool(SharedBufferPool shearedBufferPool, Thread reactorThread, int maxFreeCount) {
+        this.sharedBufferPool = shearedBufferPool;
+        this.reactorThread = reactorThread;
+        this.maxFreeCount = maxFreeCount;
+
+    }
+
+    public int getCurByteBuffersCount() {
+        return freeBuffers.size();
+    }
+
+    public Thread getReactorThread() {
+        return reactorThread;
+    }
+
+
+    /**
+     * 回收ByteBufferArrayd
+     *
+     * @param
+     */
+    public void recycle(ByteBuffer extBuffer) {
+        if (Thread.currentThread() == reactorThread) {
+
+            freeBuffers.add(extBuffer);
+            // reactor线程回收
+
+            return;
+        }
+
+
+        // 共享池回收
+        sharedBufferPool.recycle(extBuffer);
+
+
+    }
+
+    public ByteBuffer allocateByteBuffer() {
+        if (Thread.currentThread() == reactorThread) {
+            if (!freeBuffers.isEmpty()) {
+                ByteBuffer buf = freeBuffers.removeLast();
+                buf.clear();
+                return buf;
+            }
+        }
+        // 另外线程要求分配或者当前用完了，从共享BufferPool获取
+        return this.sharedBufferPool.allocate();
+    }
+
+    public ByteBufferArray allocate() {
+
+        // 另外线程要求分配或者当前用完了，从共享BufferPool获取
+        return new ByteBufferArray(this);
+    }
+
+    public SharedBufferPool getSharedBufferPool() {
+        return sharedBufferPool;
+    }
+
+}

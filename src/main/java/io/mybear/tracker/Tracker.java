@@ -72,7 +72,7 @@ public class Tracker {
         String resIp = "127.0.0.1";
         String resGroupName = "Hello";
         int resPort = 23000;
-        int resIndex = 1;
+        int resIndex = 0;
         while (true) {
             selector.select();
             Iterator<SelectionKey> iter = selector.selectedKeys().iterator();

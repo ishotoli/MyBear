@@ -111,7 +111,7 @@ public class Base64 {
                 case 1:
                     loop = 2;
                     if (nSrcLen > src.length) {
-                        szPad[0] = (char) random.nextInt();
+                        szPad[0] = (char) RandomUtil.randomNextInt();
                     } else {
                         szPad[0] = src[nSrcLen - 1];
                     }
@@ -119,8 +119,8 @@ public class Base64 {
                 case 2:
                     loop = 2;
                     if (nSrcLen > src.length) {
-                        szPad[0] = (char) random.nextInt();
-                        szPad[1] = (char) random.nextInt();
+                        szPad[0] = (char) RandomUtil.randomNextInt();
+                        szPad[1] = (char) RandomUtil.randomNextInt();
                     } else {
                         szPad[0] = src[nSrcLen - 2];
                         szPad[1] = src[nSrcLen - 1];
@@ -156,7 +156,7 @@ public class Base64 {
                         //这里扩容大一些
                         pRaw = Arrays.copyOf(pRaw, pRaw.length + 10);
                         for (int j = 0; j < 10; j++) {
-                            pRaw[temp + j] = (char) (random.nextInt());
+                            pRaw[temp + j] = (char) (RandomUtil.randomNextInt());
                         }
                     }
                     combined = ((pRaw[i]) << 16) | ((pRaw[i + 1]) << 8) | pRaw[i + 2];
