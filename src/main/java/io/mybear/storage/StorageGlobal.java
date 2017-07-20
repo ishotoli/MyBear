@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalTime;
 
 /**
@@ -17,7 +16,7 @@ import java.time.LocalTime;
 public class StorageGlobal {
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageGlobal.class);
     public static Path exeName;
-    public static Path BASE_PATH;
+    public static String BASE_PATH;
     public static int STORAGE_BEAT_DEF_INTERVAL = 30;
     public static int STORAGE_REPORT_DEF_INTERVAL = 300;
     public static int STORAGE_DEF_SYNC_WAIT_MSEC = 100;
@@ -111,7 +110,7 @@ public class StorageGlobal {
 
     public static void init(String conf_filename) throws IOException {
         iniReader = new IniFileReader(conf_filename);
-        BASE_PATH = Paths.get(iniReader.getStrValue("base_path"));
+        BASE_PATH = iniReader.getStrValue("base_path");
     }
 //public static void debug(){
 //    LOGGER.debug("MyBear v%d.%02d, base_path=%s, store_path_count=%d, " +

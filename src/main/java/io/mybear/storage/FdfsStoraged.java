@@ -81,7 +81,7 @@ public class FdfsStoraged {
             return;
         }
         confFilename = args[0];
-        Path conf = ProcessAction.getBasePathFromConfFile(confFilename);
+        String conf = ProcessAction.getBasePathFromConfFile(confFilename);
         Path pidFilename = Paths.get(g_fdfs_base_path, "/data/fdfs_storaged.pid");
         if (!ProcessAction.processAction(pidFilename, args[1])) {
             return;
@@ -151,7 +151,7 @@ public class FdfsStoraged {
      * @param filename
      * @return bind_addr
      */
-    static String storageFuncInit(final Path filename) {
+    static String storageFuncInit(final String filename) {
 
         // boolean g_client_bind_addr;
         String pGroupName;
@@ -177,7 +177,7 @@ public class FdfsStoraged {
         try {
             iniContext = StorageGlobal.iniReader;
         } catch (Exception e) {
-            LOGGER.error("load conf file \"%s\" fail, ret code: %d", filename.toString());
+            LOGGER.error("load conf file \"%s\" fail, ret code: %d", filename);
         }
         int result = 0;
         do {

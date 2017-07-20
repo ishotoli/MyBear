@@ -1,7 +1,5 @@
-package io.mybear;
+package io.mybear.storage;
 
-
-import io.mybear.storage.FdfsStoraged;
 import io.mybear.tracker.Tracker;
 import org.csource.common.NameValuePair;
 import org.csource.fastdfs.*;
@@ -11,9 +9,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Created by jamie on 2017/6/20.
+ * Created by jamie on 2017/7/20.
  */
-public class Test {
+public class StorageUploadFileTest {
     public static void main(String[] args) throws Exception {
         Thread tracker = new Thread(() -> {
             try {
@@ -63,14 +61,6 @@ public class Test {
                 fileid = sc1.upload_file1(item, "", meta_list);
             }
 
-
-            //upload_file(String group_name, String master_filename, String prefix_name, byte[] file_buff, String file_ext_name, NameValuePair[] meta_list)
-//            meta_list = new NameValuePair[2];
-//            meta_list[0] = new NameValuePair("width", "800");
-//            meta_list[1] = new NameValuePair("heigth", "600");
-//            String[] res = sc1.upload_file("hello", "test", "jar", Files.readAllBytes(path), "file_ext_name", meta_list);
-//            System.out.println(Arrays.toString(res));
-//            System.out.println(sc1.set_metadata1(fileid, meta_list, (byte) 0));
         } finally {
             tracker.stop();
             storage.stop();
@@ -78,5 +68,3 @@ public class Test {
 
     }
 }
-
-

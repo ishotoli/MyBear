@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutorService;
 public class StorageFileContext implements Serializable{
     private static final long serialVersionUID = -655643703448865782L;
 
-    public String filename;    //full filename char filename[MAX_PATH_SIZE + 128];
+    public String filename = "";    //full filename char filename[MAX_PATH_SIZE + 128];
 
     /* FDFS logic filename to log not including group name */
     public String fname2log;//char fname2log[128+sizeof(FDFS_STORAGE_META_FILE_EXT)];

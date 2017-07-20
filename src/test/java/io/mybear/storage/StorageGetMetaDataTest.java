@@ -1,18 +1,15 @@
-package io.mybear;
+package io.mybear.storage;
 
-
-import io.mybear.storage.FdfsStoraged;
 import io.mybear.tracker.Tracker;
 import org.csource.fastdfs.*;
 
 import java.net.InetSocketAddress;
 
 /**
- * Created by jamie on 2017/6/20.
+ * Created by jamie on 2017/7/20.
  */
-public class TestStorageProtoCmdDownloadFile {
-
-    public static void main(String[] args) throws Exception {
+public class StorageGetMetaDataTest {
+    public static void main(String[] args) {
         Thread trackerServiceServer = new Thread(() -> {
             try {
                 Tracker.main(args);
@@ -21,7 +18,6 @@ public class TestStorageProtoCmdDownloadFile {
             }
         });
         trackerServiceServer.start();
-        Thread.sleep(10);
         Thread storageServiceServer = new Thread(() -> {
             try {
                 FdfsStoraged.main(args);
@@ -34,9 +30,9 @@ public class TestStorageProtoCmdDownloadFile {
 
         System.out.println("java.version=" + System.getProperty("java.version"));
 
-        String group_name = "group_name";
+        String group_name = "group1";
         String fileId = "fileId";
-        String remote_filename = "remote_filename";
+        String remote_filename = "/data/0C/0D/AAAAAF6ihAmAAAAIAAD5SAAB4kAexe";
         long file_offset = 0;
         long download_bytes = 256;
 
@@ -51,8 +47,8 @@ public class TestStorageProtoCmdDownloadFile {
             StorageClient1 client = new StorageClient1(trackerServer, storageServer);
 
             for (int i = 0; i < 100; i++) {
-                byte[] result = client.download_file(group_name, remote_filename, file_offset, download_bytes);
-                System.out.println("download result is: " + result.length);
+                client.get_metadata(group_name, remote_filename);
+                client.get_metadata1("/data/0C/0D/AAAAAF6ihAmAAAAIAAD5SAAB4kAexe");
             }
 
 //            int res = client.delete_file1("hello/filedId");
@@ -66,7 +62,4 @@ public class TestStorageProtoCmdDownloadFile {
             storageServiceServer.stop();
         }
     }
-
 }
-
-

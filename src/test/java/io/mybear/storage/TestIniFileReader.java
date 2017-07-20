@@ -1,4 +1,4 @@
-package io.mybear;
+package io.mybear.storage;
 
 import org.csource.common.IniFileReader;
 

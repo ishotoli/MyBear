@@ -200,7 +200,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
             res.position(9);
             res.put((byte) 0);
             setGroupName(res, StorageGlobal.g_group_name);
-            res.put(c.fileContext.filename.substring(StorageGlobal.BASE_PATH.toString().length() + 1, c.fileContext.filename.length()).getBytes());
+            res.put(c.fileContext.filename.substring(StorageGlobal.BASE_PATH.length() + 1, c.fileContext.filename.length()).getBytes());
             int limit = res.position();
             int pkgLen = limit - 10;
             res.position(0);
