@@ -3,6 +3,7 @@ package io.mybear.storage.parserHandler;
 
 import io.mybear.common.*;
 import io.mybear.storage.StorageDio;
+import io.mybear.storage.StorageGlobal;
 import io.mybear.storage.StorageService;
 import io.mybear.storage.storageNio.Connection;
 import io.mybear.storage.storageNio.StorageClientInfo;
@@ -17,14 +18,12 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.zip.CRC32;
 
 import static io.mybear.storage.StorageService.FILE_SEPARATOR;
@@ -187,12 +186,10 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
         byte[] bytes = new byte[6];
         nioData.get(bytes, 0, 6);
         // con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, nioData.get(0), 0);
-        con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, 0, 0);
+        con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, nioData.get(0), 0);
         int crc32 = 123456;
-        char[] name = new char[256];
-        char[] fileName = new char[256];
-        StorageService.storageGetFilename(con, (int) TimeUtil.currentTimeMillis(), fileSize, crc32, new String(bytes).toCharArray(), name, fileName);
-        con.fileContext.filename = Paths.get("d:/" + Integer.valueOf(ThreadLocalRandom.current().nextInt()).toString().substring(1, 5) + ".jar");
+        String fileName = StorageService.storageGetFilename(con, (int) TimeUtil.currentTimeMillis(), fileSize, crc32, new String(bytes).toCharArray()).trim();
+        con.fileContext.filename = fileName;
         con.fileContext.openFlags = StandardOpenOption.APPEND;
         con.fileContext.done_callback = (c) -> {
             ByteBuffer res;
@@ -202,8 +199,8 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
             setStorageCMDResp(res);
             res.position(9);
             res.put((byte) 0);
-            setGroupName(res, "Hello");
-            setGroupName(res, "ll");
+            setGroupName(res, StorageGlobal.g_group_name);
+            res.put(c.fileContext.filename.substring(StorageGlobal.BASE_PATH.toString().length() + 1, c.fileContext.filename.length()).getBytes());
             int limit = res.position();
             int pkgLen = limit - 10;
             res.position(0);

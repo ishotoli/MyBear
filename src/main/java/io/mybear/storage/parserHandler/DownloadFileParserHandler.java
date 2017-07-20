@@ -72,8 +72,8 @@ public class DownloadFileParserHandler implements ParserHandler<StorageClientInf
             try {
                 ByteBuffer header;
                 if (con.fileContext.fileChannel == null) {//还没打开文件
-                    con.fileContext.filename = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
-                    con.fileContext.fileChannel = FileChannel.open(con.fileContext.filename, StandardOpenOption.READ);
+                    con.fileContext.filename = System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar";
+                    con.fileContext.fileChannel = FileChannel.open(Paths.get(con.fileContext.filename), StandardOpenOption.READ);
                     long size = con.fileContext.end = con.fileContext.fileChannel.size();
                     header = con.getMyBufferPool().allocateByteBuffer().putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
                     con.fileContext.done_callback = (co) -> {

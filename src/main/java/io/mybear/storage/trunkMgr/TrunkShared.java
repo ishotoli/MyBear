@@ -4,8 +4,6 @@ import io.mybear.common.Base64Context;
 import io.mybear.common.FdfsStorePaths;
 import io.mybear.common.utils.Base64;
 
-import java.nio.file.Path;
-
 import static io.mybear.common.FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN;
 
 /**
@@ -30,14 +28,14 @@ public class TrunkShared {
     public static int FDFS_TRUNK_FILE_FILE_MTIME_OFFSET = 13;
     public static int FDFS_TRUNK_FILE_FILE_EXT_NAME_OFFSET = 17;
     public static int FDFS_TRUNK_FILE_HEADER_SIZE = (17 + FDFS_FILE_EXT_NAME_MAX_LEN + 1);
-    public static Path[] g_fdfs_store_paths;
+
 
     public static void trunkSharedInit() {
         //初始化Base64
         Base64.base64InitEx(base64Context,0, '-', '_', '.');
     }
 
-    public FdfsStorePaths getFdfsStorePaths() {
+    public static FdfsStorePaths getFdfsStorePaths() {
         return fdfsStorePaths;
     }
 }

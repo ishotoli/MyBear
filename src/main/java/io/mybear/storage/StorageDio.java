@@ -1,9 +1,6 @@
 package io.mybear.storage;
 
-import io.mybear.common.FileBeforeOpenCallback;
-import io.mybear.common.StorageDioThreadData;
-import io.mybear.common.StorageFileContext;
-import io.mybear.common.StorageUploadInfo;
+import io.mybear.common.*;
 import io.mybear.storage.storageNio.Connection;
 import io.mybear.storage.storageNio.StorageClientInfo;
 import io.mybear.storage.storageNio.TimeUtil;
@@ -11,12 +8,11 @@ import io.mybear.storage.trunkMgr.TrunkShared;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,7 +20,8 @@ import java.util.zip.CRC32;
 
 import static io.mybear.storage.StorageGlobal.g_disk_reader_threads;
 import static io.mybear.storage.StorageGlobal.g_disk_writer_threads;
-import static io.mybear.storage.trunkMgr.TrunkShared.*;
+import static io.mybear.storage.trunkMgr.TrunkShared.FDFS_TRUNK_FILE_ALLOC_SIZE_OFFSET;
+import static io.mybear.storage.trunkMgr.TrunkShared.FDFS_TRUNK_FILE_TYPE_REGULAR;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -46,16 +43,15 @@ public class StorageDio {
     public static void init() {
         g_dio_thread_lock = new Object();
         int threads_count_per_path = g_disk_reader_threads + g_disk_writer_threads;
-        if (g_fdfs_store_paths == null) {
-            g_fdfs_store_paths = new Path[]{Paths.get("data")};
-        }
-        int context_count = threads_count_per_path * g_fdfs_store_paths.length;
+        FdfsStorePaths paths = TrunkShared.getFdfsStorePaths();
+        int pathConut = paths.getCount();
+        int context_count = threads_count_per_path * pathConut;
         g_dio_contexts = new ExecutorService[context_count];
         for (int i = 0; i < g_dio_contexts.length; i++) {
             // ArrayBlockingQueue
             g_dio_contexts[i] = Executors.newSingleThreadExecutor();
         }
-        g_dio_thread_data = new StorageDioThreadData[g_fdfs_store_paths.length];
+        g_dio_thread_data = new StorageDioThreadData[pathConut];
         for (int i = 0; i < g_dio_thread_data.length; i++) {
             StorageDioThreadData threadData = g_dio_thread_data[i] = new StorageDioThreadData();
             threadData.count = threads_count_per_path;
@@ -243,6 +239,7 @@ public class StorageDio {
             try {
                 LOGGER.info("任务完成");
                 pFileContext.fileChannel.close();
+                pFileContext.randomAccessFile.close();
                 if (pFileContext.done_callback != null)
                     pFileContext.done_callback.accept(pTask);
             } catch (IOException e) {
@@ -258,9 +255,10 @@ public class StorageDio {
         try {
             FileChannel fileChannel = pFileContext.fileChannel;
             if (fileChannel == null) {
-                Files.createFile(pFileContext.filename);
-                pFileContext.fileChannel = FileChannel.open(pFileContext.filename, pFileContext.openFlags);
-
+                File file = new File(pFileContext.filename);
+                file.createNewFile();
+                pFileContext.randomAccessFile = new RandomAccessFile(pFileContext.filename, "rw");
+                pFileContext.fileChannel = pFileContext.randomAccessFile.getChannel();
                 if (pFileContext.offset > 0) {
                     fileChannel.position(pFileContext.offset);
                 }
@@ -326,10 +324,7 @@ public class StorageDio {
 
     public void dio_delete_normal_file(StorageClientInfo StorageClientInfo) {
         StorageFileContext fileContext = StorageClientInfo.fileContext;
-        try {
-            Files.delete(fileContext.filename);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!new File(fileContext.filename).delete()) {
             fileContext.log_callback.accept(StorageClientInfo);
         }
         fileContext.done_callback.accept(StorageClientInfo);

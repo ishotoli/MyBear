@@ -106,8 +106,9 @@ public class StorageGlobal {
     public static int g_thread_stack_size;
     public static int g_upload_priority;
     public static long g_up_time;
+    public static FdfsStorePathInfo[] g_path_space_list;
     static IniFileReader iniReader;
-    public static FdfsStorePathInfo[] fdfsStorePathInfo;
+
     public static void init(String conf_filename) throws IOException {
         iniReader = new IniFileReader(conf_filename);
         BASE_PATH = Paths.get(iniReader.getStrValue("base_path"));

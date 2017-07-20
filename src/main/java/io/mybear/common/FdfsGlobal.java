@@ -2,6 +2,7 @@ package io.mybear.common;
 
 import io.mybear.tracker.TrackerTypes;
 
+import java.io.File;
 import java.net.InetSocketAddress;
 
 import static io.mybear.common.FdfsDefine.DEFAULT_MAX_CONNECTONS;
@@ -11,15 +12,12 @@ import static io.mybear.tracker.TrackerTypes.*;
 import static org.csource.fastdfs.ClientGlobal.DEFAULT_CONNECT_TIMEOUT;
 import static org.csource.fastdfs.ClientGlobal.DEFAULT_NETWORK_TIMEOUT;
 
-import java.io.File;
-
 /**
  * Created by jamie on 2017/6/21.
  */
 public class FdfsGlobal {
 
     public static final int FDFS_FILE_EXT_NAME_MAX_LEN = 6;
-    public static final String g_fdfs_base_path = "/tmp";
     public static int g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
     public static int g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
 

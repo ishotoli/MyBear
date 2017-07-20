@@ -23,8 +23,8 @@ public class StorageFunc {
         if (result != 0) {
             return result;
         }
-        StorageGlobal.fdfsStorePathInfo = new FdfsStorePathInfo[TrunkShared.fdfsStorePaths.getCount()];
-        if (StorageGlobal.fdfsStorePathInfo.length == 0) {
+        StorageGlobal.g_path_space_list = new FdfsStorePathInfo[TrunkShared.fdfsStorePaths.getCount()];
+        if (StorageGlobal.g_path_space_list.length == 0) {
             log.error(CommonConstant.LOG_FORMAT, "storageLoadPaths",
                 JSON.toJSON(pItemContext) + " count " + TrunkShared.fdfsStorePaths.getCount(), "count值为0");
             return -1;
