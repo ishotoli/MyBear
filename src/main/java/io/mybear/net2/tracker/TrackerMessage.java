@@ -74,4 +74,19 @@ public class TrackerMessage {
     public byte readByte(){
         return data.readByte(position++);
     }
+
+    public byte[] getTrackerReplay(){
+        byte[] bytes = new byte[10];
+        bytes[0] = (byte)((this.pkgLen >> 56) & 0xff);
+        bytes[1] = (byte)((this.pkgLen >> 48) & 0xff);
+        bytes[2] = (byte)((this.pkgLen >> 40) & 0xff);
+        bytes[3] = (byte)((this.pkgLen >> 32) & 0xff);
+        bytes[4] = (byte)((this.pkgLen >> 24) & 0xff);
+        bytes[5] = (byte)((this.pkgLen >> 16) & 0xff);
+        bytes[6] = (byte)((this.pkgLen >> 8) & 0xff);
+        bytes[7] = (byte)(this.pkgLen & 0xff);
+        bytes[8] = this.cmd;
+        bytes[9] = this.status;
+        return bytes;
+    }
 }

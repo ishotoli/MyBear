@@ -14,4 +14,7 @@ public class TrackerProto {
 
     // storage发送的心跳
     public static final byte TRACKER_PROTO_CMD_STORAGE_BEAT = 83;
+
+    // tracker回复
+    public static final byte TRACKER_PROTO_CMD_RESP = 100;
 }

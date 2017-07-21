@@ -63,8 +63,8 @@ public class TrackerConnectionTest extends TestCase {
             + TrackerMessage.PACKAGE_HEADER_SIZE);
 
         // 回收空间
-        mockBufferArray.compact(15);
-        EasyMock.expectLastCall();
+        EasyMock.expect(mockBufferArray.compact(15)).andReturn(0l);
+
         EasyMock.replay(mockBufferArray);
 
         EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
@@ -92,8 +92,7 @@ public class TrackerConnectionTest extends TestCase {
             + TrackerMessage.PACKAGE_HEADER_SIZE);
 
         // 回收空间
-        mockBufferArray.compact(20);
-        EasyMock.expectLastCall();
+        EasyMock.expect(mockBufferArray.compact(20)).andReturn(0l);
         EasyMock.replay(mockBufferArray);
 
         EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
@@ -131,8 +130,7 @@ public class TrackerConnectionTest extends TestCase {
             + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
 
         // 回收空间
-        mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
-        EasyMock.expectLastCall();
+        EasyMock.expect(mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2)).andReturn(15l);
         EasyMock.replay(mockBufferArray);
 
         EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
@@ -173,8 +171,7 @@ public class TrackerConnectionTest extends TestCase {
             .andReturn(TrackerProto.TRACKER_PROTO_CMD_STORAGE_BEAT);
 
         // 回收空间
-        mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
-        EasyMock.expectLastCall();
+        EasyMock.expect(mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2)).andReturn(15l);
         EasyMock.replay(mockBufferArray);
 
         EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);
@@ -212,8 +209,7 @@ public class TrackerConnectionTest extends TestCase {
             + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
 
         // 回收空间
-        mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2);
-        EasyMock.expectLastCall();
+        EasyMock.expect(mockBufferArray.compact(pkgLen1 + pkgLen2 + TrackerMessage.PACKAGE_HEADER_SIZE * 2)).andReturn(5l);
         EasyMock.replay(mockBufferArray);
 
         EasyMock.expect(mockChannel.read(byteBuffer)).andReturn(1);

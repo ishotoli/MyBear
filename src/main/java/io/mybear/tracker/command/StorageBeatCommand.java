@@ -80,5 +80,6 @@ public class StorageBeatCommand extends TrackerCommand {
         }
 
         // TODO: tracker_check_and_sync(conn, state)
+        message.setStatus(state);
     }
 }

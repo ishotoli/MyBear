@@ -52,7 +52,7 @@ public abstract class Connection implements ClosableConnection {
     protected NIOHandler handler;
     private State state = State.connecting;
     private Direction direction = Direction.in;
-    private SelectionKey processKey;
+    protected SelectionKey processKey;
     private ByteBuffer readBuffer;
     private int readBufferOffset;
     private ByteBuffer writeBuffer;
@@ -301,7 +301,6 @@ public abstract class Connection implements ClosableConnection {
             }
             close("err:" + e);
         }
-
     }
 
     public void write(ByteBufferArray bufferArray) {
@@ -347,7 +346,7 @@ public abstract class Connection implements ClosableConnection {
         return true;
     }
 
-    private void disableWrite() {
+    protected void disableWrite() {
         try {
             SelectionKey key = this.processKey;
             key.interestOps(key.interestOps() & OP_NOT_WRITE);
@@ -357,7 +356,7 @@ public abstract class Connection implements ClosableConnection {
 
     }
 
-    public void enableWrite(boolean wakeup) {
+    protected void enableWrite(boolean wakeup) {
         boolean needWakeup = false;
         try {
             SelectionKey key = this.processKey;
