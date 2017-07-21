@@ -64,7 +64,7 @@ public class FdfsGlobal {
     public static int g_write_mark_file_freq = FDFS_DEFAULT_SYNC_MARK_FILE_FREQ;
     public static int g_sync_stat_file_interval = DEFAULT_SYNC_STAT_FILE_INTERVAL;
 
-    public static FDFSStorageStat g_storage_stat;
+
     public static int g_stat_change_count = 1;
     public static int g_sync_change_count = 0;
 

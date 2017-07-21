@@ -1,5 +1,7 @@
 package io.mybear.common;
 
+import java.util.concurrent.atomic.LongAdder;
+
 /**
  * Created by jamie on 2017/7/8.
  */
@@ -39,12 +41,12 @@ public class FDFSStorageStat {
     public long success_sync_in_bytes;
     public long total_sync_out_bytes;
     public long success_sync_out_bytes;
-    public long total_file_open_count;
-    public long success_file_open_count;
-    public long total_file_read_count;
-    public long success_file_read_count;
-    public long total_file_write_count;
-    public long success_file_write_count;
+    public LongAdder total_file_open_count = new LongAdder();
+    public LongAdder success_file_open_count = new LongAdder();
+    public LongAdder total_file_read_count = new LongAdder();
+    public LongAdder success_file_read_count = new LongAdder();
+    public LongAdder total_file_write_count = new LongAdder();
+    public LongAdder success_file_write_count = new LongAdder();
 
     /* last update timestamp as source server, 
            current server' timestamp

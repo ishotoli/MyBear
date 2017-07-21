@@ -47,11 +47,12 @@ public class StorageUploadFileTest {
             String item;
             String fileid;
             String name = System.getProperty("os.name");
-            Path path = Paths.get("d:/1358.zip");
+            Path path = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
             if (name.toLowerCase().contains("windows")) {
                 item = path.toString();
-                for (int i = 0; i < 2; i++) {
+                for (int i = 0; i < 9; i++) {
                     fileid = sc1.upload_file1(item, "exe", meta_list);
+                    System.out.println(fileid);
                 }
             } else {
                 item = "/etc/hosts";

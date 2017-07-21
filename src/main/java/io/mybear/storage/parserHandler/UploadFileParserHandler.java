@@ -1,7 +1,11 @@
 package io.mybear.storage.parserHandler;
 
 
-import io.mybear.common.*;
+import io.mybear.common.FdfsTrunkFullInfo;
+import io.mybear.common.FdfsTrunkPathInfo;
+import io.mybear.common.StorageFileContext;
+import io.mybear.common.StorageUploadInfo;
+import io.mybear.common.utils.HashUtil;
 import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageGlobal;
 import io.mybear.storage.StorageService;
@@ -20,13 +24,9 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 import java.security.AccessController;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
-import java.util.Arrays;
 import java.util.zip.CRC32;
 
-import static io.mybear.storage.StorageService.FILE_SEPARATOR;
 import static org.csource.fastdfs.ProtoCommon.TRACKER_PROTO_CMD_RESP;
 
 
@@ -63,39 +63,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
 
     }
 
-    public static void genFileName(int fileNameLen, char[] encoded, char[] formattedExtName) {
-        //测试文件名
-        char[] fileName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13) + FILE_SEPARATOR).toCharArray();
-        int fileLen = fileName.length;
-        int flag = 0;
-        if (fileNameLen > encoded.length) {
-            flag = fileName.length;
-            fileName = Arrays.copyOf(fileName, flag + encoded.length);
-            System.arraycopy(encoded, 0, fileName, flag, encoded.length);
-        } else {
-            flag = fileName.length;
-            fileName = Arrays.copyOf(fileName, flag + fileNameLen);
-            System.arraycopy(encoded, 0, fileName, flag, fileNameLen);
-            int len = FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1;
-            if (formattedExtName.length > len) {
-                fileName = Arrays.copyOf(fileName, flag + fileNameLen + len);
-                System.arraycopy(formattedExtName, 0, fileName, flag + fileNameLen, len);
-            } else {
-                fileName = Arrays.copyOf(fileName, flag + fileNameLen + formattedExtName.length);
-                System.arraycopy(formattedExtName, 0, fileName, flag + fileNameLen, formattedExtName.length);
-            }
-        }
-        System.out.println(fileName);
-    }
 
-    static MessageDigest getMD5CTX() {
-        try {
-            return MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
     //    static {
 //        try {
@@ -106,20 +74,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
 //            e.printStackTrace();
 //        }
 //    }
-    /*
-      * 字节数组转16进制字符串
-      */
-    public static String bytes2HexString(byte[] b) {
-        String r = "";
-        for (int i = 0; i < b.length; i++) {
-            String hex = Integer.toHexString(b[i] & 0xFF);
-            if (hex.length() == 1) {
-                hex = '0' + hex;
-            }
-            r += hex.toUpperCase();
-        }
-        return r;
-    }
+
 
     public static void upload(Connection con, SocketChannel channel) {
         // ((StorageClientInfo)con).deal_func.apply((StorageClientInfo) con);
@@ -173,6 +128,11 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
         StorageUploadInfo uploadInfo = new StorageUploadInfo();
         con.fileContext = new StorageFileContext();
         con.fileContext.extra_info = uploadInfo;
+        con.fileContext.calcCrc32 = true;
+        con.fileContext.fileHashCodes = HashUtil.initHashCodes4();
+        con.fileContext.crc32 = HashUtil.getCRC32();
+        con.fileContext.calcFileHash = true;
+        con.fileContext.MD5CTX = HashUtil.getMD5();
         FdfsTrunkFullInfo trunkFullInfo = new FdfsTrunkFullInfo();
         uploadInfo.setTrunkInfo(trunkFullInfo);
         FdfsTrunkPathInfo pathInfo = new FdfsTrunkPathInfo();

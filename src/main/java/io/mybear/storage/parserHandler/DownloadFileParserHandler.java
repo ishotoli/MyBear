@@ -12,9 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 
 import static org.csource.fastdfs.ProtoCommon.TRACKER_PROTO_CMD_RESP;
 
@@ -68,16 +65,18 @@ public class DownloadFileParserHandler implements ParserHandler<StorageClientInf
         nioData.get(bytes);
         String s = new String(bytes);
         c.fileContext.filename += s;
+        c.fileContext.filename = c.fileContext.filename.substring(StorageGlobal.g_group_name.length(), c.fileContext.filename.length());
+        c.fileContext.filename = StorageGlobal.BASE_PATH + c.fileContext.filename;
+        c.fileContext.dioExecutorService = StorageDio.getThreadIndex(c, 0, 0);
         c.dealFunc = (con) -> {
             try {
                 ByteBuffer header;
                 if (con.fileContext.fileChannel == null) {//还没打开文件
-                    File file = new File(StorageGlobal.BASE_PATH + con.fileContext.filename);
+                    File file = new File(con.fileContext.filename);
                     RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r");
                     con.fileContext.randomAccessFile = randomAccessFile;
                     con.fileContext.fileChannel = randomAccessFile.getChannel();
-                    con.fileContext.filename = StorageGlobal.BASE_PATH + con.fileContext.filename;
-                    con.fileContext.fileChannel = FileChannel.open(Paths.get(con.fileContext.filename), StandardOpenOption.READ);
+                    //   con.fileContext.fileChannel = FileChannel.open(Paths.get(con.fileContext.filename), StandardOpenOption.READ);
                     long size = con.fileContext.end = con.fileContext.fileChannel.size();
                     header = con.getMyBufferPool().allocateByteBuffer().putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
                     con.fileContext.done_callback = (co) -> {

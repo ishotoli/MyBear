@@ -1,6 +1,7 @@
 package io.mybear.storage;
 
 import io.mybear.common.FDFSStorageServer;
+import io.mybear.common.FDFSStorageStat;
 import io.mybear.common.FdfsStorePathInfo;
 import io.mybear.common.IniFileReader;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class StorageGlobal {
     public static int DEFAULT_UPLOAD_PRIORITY = 10;
     public static int FDFS_DEFAULT_SYNC_MARK_FILE_FREQ = 500;
     public static int STORAGE_DEFAULT_BUFF_SIZE = (64 * 1024);
-    public static int STORAGE_FILE_SIGNATURE_METHOD_HASH = 1;
+    public static byte STORAGE_FILE_SIGNATURE_METHOD_HASH = 1;
     public static int STORAGE_FILE_SIGNATURE_METHOD_MD5 = 2;
     /* subdirs under store path, g_subdir_count * g_subdir_count 2 level subdirs */
     public static int g_subdir_count_per_path;
@@ -65,7 +66,7 @@ public class StorageGlobal {
     public static int g_sync_binlog_buff_interval; //sync binlog buff to disk every interval seconds
     public static int g_write_mark_file_freq;      //write to mark file after sync N files
     public static int g_sync_stat_file_interval;   //sync storage stat info to disk interval
-    //public static FDFSStorageStat g_storage_stat;
+    public static FDFSStorageStat g_storage_stat = new FDFSStorageStat();
     public static int g_stat_change_count;
     public static int g_sync_change_count; //sync src timestamp change counter
     public static long g_storage_join_time;  //my join timestamp
@@ -88,7 +89,7 @@ public class StorageGlobal {
     public static LocalTime g_access_log_rotate_time; //rotate access log time base
     public static LocalTime g_error_log_rotate_time;  //rotate error log time base
     public static boolean g_check_file_duplicate;  //if check file content duplicate
-    public static byte g_file_signature_method; //file signature method
+    public static byte g_file_signature_method = STORAGE_FILE_SIGNATURE_METHOD_HASH; //file signature method
     public static String g_key_namespace;
     public static int g_namespace_len;
     public static int g_allow_ip_count;  /* -1 means match any ip address */

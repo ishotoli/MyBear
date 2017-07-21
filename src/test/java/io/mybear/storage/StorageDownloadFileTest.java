@@ -34,7 +34,7 @@ public class StorageDownloadFileTest {
         System.out.println("java.version=" + System.getProperty("java.version"));
 
         String group_name = "group1";
-        String remote_filename = "/data/0C/0D/remote_filename";
+        String remote_filename = "group1/data/00/00/AAAAAGT9WIGAAAAOAAD5SAAB4kAexe";
         long file_offset = 0;
         long download_bytes = 256;
 

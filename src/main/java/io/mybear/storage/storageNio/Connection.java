@@ -548,7 +548,7 @@ public abstract class Connection implements ClosableConnection {
             }
         } else if (packetState == downloadHead) {
             if (flagData == Boolean.TRUE) {
-                LOGGER.debug("flagData= Boolean.False;发送下载数据,需要通知dio,dio每处理一次通知完毕后,把flagData == Boolean.False,直至结束");
+                LOGGER.debug("flagData= Boolean.False;发送下载数据,需要通知dio,dio每处理一次通知完毕后,把flagData == Boolean.True,直至结束");
                 return;
             } else {
                 if (flagData instanceof ByteBuffer || flagData instanceof ByteBufferArray) {
