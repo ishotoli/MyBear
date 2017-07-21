@@ -281,7 +281,7 @@ public class StorageService {
                 storageGetStorePath(encoded, fileNameLen, pTrunkInfo.getPath());
                 storageUploadInfo.setIfSubPathAlloced(true);
             }
-            char[] fileNewName = (String.format("%02X", 12) + FILE_SEPARATOR + String.format("%02X", 13)
+            char[] fileNewName = (String.format("%02X", pTrunkInfo.getPath().getSubPathHigh()) + FILE_SEPARATOR + String.format("%02X", pTrunkInfo.getPath().getSubPathLow())
                     + FILE_SEPARATOR).toCharArray();
             int fileLen = fileNewName.length;
             int flag = 0;

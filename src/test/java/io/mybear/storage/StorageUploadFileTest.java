@@ -21,7 +21,6 @@ public class StorageUploadFileTest {
             }
         });
         tracker.start();
-        Thread.sleep(10);
         Thread storage = new Thread(() -> {
             try {
                 FdfsStoraged.main(args);
@@ -30,6 +29,7 @@ public class StorageUploadFileTest {
             }
         });
         storage.start();
+        Thread.sleep(2000);
         try {
             TrackerGroup tg = new TrackerGroup(new InetSocketAddress[]{new InetSocketAddress("127.0.0.1", 22122)});
             TrackerClient tc = new TrackerClient(tg);
@@ -47,14 +47,11 @@ public class StorageUploadFileTest {
             String item;
             String fileid;
             String name = System.getProperty("os.name");
-            Path path = Paths.get(System.getProperty("user.dir") + "/lib/fastdfs-client-java-1.27-SNAPSHOT.jar");
+            Path path = Paths.get("d:/1358.zip");
             if (name.toLowerCase().contains("windows")) {
                 item = path.toString();
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; i < 2; i++) {
                     fileid = sc1.upload_file1(item, "exe", meta_list);
-                    System.out.println("Upload local file " + item + " ok, fileid=" + fileid);
-                    fileid = sc1.upload_file1(item, "exe", meta_list);
-                    System.out.println("Upload local file " + item + " ok, fileid=" + fileid);
                 }
             } else {
                 item = "/etc/hosts";

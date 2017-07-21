@@ -29,7 +29,7 @@ public class StorageDownloadFileTest {
             }
         });
         storageServiceServer.start();
-
+        Thread.sleep(2000);
 
         System.out.println("java.version=" + System.getProperty("java.version"));
 

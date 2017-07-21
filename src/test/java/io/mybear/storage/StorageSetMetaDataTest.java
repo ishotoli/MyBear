@@ -10,7 +10,7 @@ import java.net.InetSocketAddress;
  * Created by jamie on 2017/7/20.
  */
 public class StorageSetMetaDataTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Thread trackerServiceServer = new Thread(() -> {
             try {
                 Tracker.main(args);
@@ -27,7 +27,7 @@ public class StorageSetMetaDataTest {
             }
         });
         storageServiceServer.start();
-
+        Thread.sleep(2000);
 
         System.out.println("java.version=" + System.getProperty("java.version"));
 
@@ -38,7 +38,6 @@ public class StorageSetMetaDataTest {
         long download_bytes = 256;
 
         try {
-
             System.out.println("network_timeout=" + ClientGlobal.g_network_timeout + "ms");
             System.out.println("charset=" + ClientGlobal.g_charset);
             TrackerGroup tg = new TrackerGroup(new InetSocketAddress[]{new InetSocketAddress("127.0.0.1", 22122)});

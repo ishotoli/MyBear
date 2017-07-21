@@ -607,6 +607,10 @@ public class FdfsStoraged {
 //
 //            if (pBindAddr == null) pBindAddr = "";
 //            else LOGGER.info("");
+        if (!StorageFunc.storageCheckAndMakeDataDirs()) {
+            LOGGER.info("storage_check_and_make_data_dirs fail,program exit!");
+            return "";
+        }
 
         return pBindAddr;
     }

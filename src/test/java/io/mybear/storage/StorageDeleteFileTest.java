@@ -27,6 +27,7 @@ public class StorageDeleteFileTest {
             }
         });
         storage.start();
+        Thread.sleep(2000);
         try {
             TrackerGroup tg = new TrackerGroup(new InetSocketAddress[]{new InetSocketAddress("127.0.0.1", 22122)});
             TrackerClient tc = new TrackerClient(tg);

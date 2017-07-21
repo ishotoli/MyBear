@@ -244,7 +244,9 @@ public abstract class Connection implements ClosableConnection {
     protected void cleanup() {
         // 清理资源占用
         if (readBuffer != null) {
-            myBufferPool.recycle(readBuffer);
+            if (!(readBuffer instanceof MappedByteBuffer)) {
+                myBufferPool.recycle(readBuffer);
+            }
         }
         Object writeBuffer = this.flagData;
         if (writeBuffer != null) {
@@ -520,7 +522,7 @@ public abstract class Connection implements ClosableConnection {
             myBufferPool.recycle(readBuffer);
             RandomAccessFile memoryMappedFile = new RandomAccessFile("d:/sss" + "0", "rw");
             LOGGER.debug("需要池化Mapped");
-            readBuffer = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 64 * 1024);
+            readBuffer = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 96 * 1024);
         }
         //this.flagData=Boolean.FALSE;
     }
@@ -670,13 +672,16 @@ public abstract class Connection implements ClosableConnection {
                     int got;
                     this.readBuffer.clear();//每次进入这里都要清除信息
                     assert (this.readBuffer instanceof MappedByteBuffer);
-                    do {
-                        got = this.getChannel().read(this.readBuffer);
-                        if (got == -1) {
-                            close("socket被关闭");
-                        }
-                        //this.offset+=got;
-                    } while (got > 0);
+                    got = this.getChannel().read(this.readBuffer);
+                    if (got == -1) {
+                        close("socket被关闭");
+                    }
+                    if (!this.readBuffer.hasRemaining()) {
+//                        LOGGER.debug("readBuffer满了");
+                    } else {
+//                        LOGGER.debug("readBuffer没满");
+                    }
+                    //this.offset+=got;
                     flagData = Boolean.FALSE;
                     UploadFileParserHandler.upload(this, channel);
                     return;

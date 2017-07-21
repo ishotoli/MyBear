@@ -9,7 +9,7 @@ import java.net.InetSocketAddress;
  * Created by jamie on 2017/7/20.
  */
 public class StorageGetMetaDataTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Thread trackerServiceServer = new Thread(() -> {
             try {
                 Tracker.main(args);
@@ -26,7 +26,7 @@ public class StorageGetMetaDataTest {
             }
         });
         storageServiceServer.start();
-
+        Thread.sleep(2000);
 
         System.out.println("java.version=" + System.getProperty("java.version"));
 

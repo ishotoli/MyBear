@@ -3,11 +3,14 @@ Java高仿FastDFS
 #### 如何在IDE中开发
 在src\test\resources\storage.conf这个文件中的base_path和store_path0写上本地路径
 例如:
+
+
 store_path0 = d:/fastdfs
+
 base_path = d:/fastdfs
 
+
 之后使用src\test\java\io\mybear中的测试类启动
-因为还没有写为上传文件建立目录的函数,所以要手动建立目录
 #### 2017-04-08 协议解析
 | 命令                                       | 值                                   | 内容                                       |
 | ---------------------------------------- | ----------------------------------- | ---------------------------------------- |

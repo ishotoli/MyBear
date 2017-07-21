@@ -68,7 +68,7 @@ public class StorageGlobal {
     //public static FDFSStorageStat g_storage_stat;
     public static int g_stat_change_count;
     public static int g_sync_change_count; //sync src timestamp change counter
-    public static int g_storage_join_time;  //my join timestamp
+    public static long g_storage_join_time;  //my join timestamp
     public static int g_sync_until_timestamp;
     public static boolean g_sync_old_done;     //if old files synced to me done
     public static String g_sync_src_id; //the source storage server id

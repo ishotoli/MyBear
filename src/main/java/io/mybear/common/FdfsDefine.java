@@ -4,9 +4,12 @@ package io.mybear.common;
  * Created by jamie on 2017/6/21.
  */
 public class FdfsDefine {
-    public static final int FDFS_STORAGE_SERVER_DEF_PORT = 23000;
     public static final int DEFAULT_MAX_CONNECTONS = 256;
-
+    public static final int FDFS_TRACKER_SERVER_DEF_PORT = 22000;
+    public static final int FDFS_STORAGE_SERVER_DEF_PORT = 23000;
+    public static final int FDFS_DEF_STORAGE_RESERVED_MB = 1024;
+    public static final String TRACKER_ERROR_LOG_FILENAME = "trackerd";
+    public static final String STORAGE_ERROR_LOG_FILENAME = "storaged";
     public static final int FDHT_SERVER_DEFAULT_PORT = 24000;
     public static final int FDHT_DEFAULT_PROXY_PORT = 12200;
     public static final int FDHT_MAX_PKG_SIZE = 64 * 1024;
