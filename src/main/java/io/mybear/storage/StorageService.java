@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static io.mybear.common.utils.BasicTypeConversionUtil.int2buff;
 import static io.mybear.common.utils.BasicTypeConversionUtil.long2buff;
 
+
 /**
  * Created by jamie on 2017/6/21.
  */
@@ -46,6 +47,7 @@ public class StorageService {
     public static final int STORAGE_DELETE_FLAG_NONE = 0;
     public static final int STORAGE_DELETE_FLAG_FILE = 1;
     public static final int STORAGE_DELETE_FLAG_LINK = 2;
+    private static final Logger LOGGER = LoggerFactory.getLogger(StorageService.class);
     private final static Logger log = LoggerFactory.getLogger(StorageService.class);
     private static final ReentrantLock lock = new ReentrantLock();
 
@@ -65,9 +67,89 @@ public class StorageService {
 
     }
 
-    public static void STORAGE_PROTO_CMD_SET_METADATA(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
-
-    }
+//    public static void storageProtoCmdSetMetadata(StorageClientInfo clientInfo) {
+//        StorageFileContext fileContext = clientInfo.fileContext;
+//        StorageSetMetaInfo setmeta = (StorageSetMetaInfo) clientInfo.extraArg;
+//        List<String[]> list = MetadataUtil.splitMetadata(setmeta.metaBuff);
+//        StringBuilder stringBuilder = new StringBuilder();
+//        fileContext.syncFlag = '\0';
+//        StringBuilder metaBuff = setmeta.metaBuff;
+//        int metaBytes = setmeta.meta_bytes;
+//        int result = 0;
+//        try {
+//            do {
+//                if (setmeta.op_flag == STORAGE_SET_METADATA_FLAG_OVERWRITE) {
+//                    if (metaBuff.length() == 0) {
+//                        if (!SharedFunc.fileExists(fileContext.filename)) {
+//                            result = 0;
+//                            break;
+//                        }
+//                        fileContext.syncFlag = StorageSync.STORAGE_OP_TYPE_SOURCE_DELETE_FILE;
+//                        if (!SharedFunc.delete(fileContext.filename)) {
+//                            LOGGER.error("client ip: %s, delete file %s fail", clientInfo.getChannel().getRemoteAddress(), fileContext.filename);
+//                            result = -1;
+//                        } else {
+//                            result = 0;
+//                        }
+//                        break;
+//                    }
+//
+//                    if ((result = storage_sort_metadata_buff(meta_buff, \
+//                            meta_bytes)) != 0) {
+//                        break;
+//                    }
+//
+//                    if (fileExists(pFileContext -> filename)) {
+//                        pFileContext -> sync_flag = STORAGE_OP_TYPE_SOURCE_UPDATE_FILE;
+//                    } else {
+//                        pFileContext -> sync_flag = STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
+//                    }
+//
+//                    result = writeToFile(pFileContext -> filename, meta_buff, meta_bytes);
+//                    break;
+//                }
+//
+//                if (meta_bytes == 0) {
+//                    result = 0;
+//                    break;
+//                }
+//
+//                result = getFileContent(pFileContext -> filename, & file_buff, &file_bytes);
+//                if (result == ENOENT) {
+//                    if (meta_bytes == 0) {
+//                        result = 0;
+//                        break;
+//                    }
+//
+//                    if ((result = storage_sort_metadata_buff(meta_buff, \
+//                            meta_bytes)) != 0) {
+//                        break;
+//                    }
+//
+//                    pFileContext -> sync_flag = STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
+//                    result = writeToFile(pFileContext -> filename, meta_buff, meta_bytes);
+//                    break;
+//                } else if (result != 0) {
+//                    break;
+//                }
+//
+//                old_meta_list = fdfs_split_metadata(file_buff, & old_meta_count, &result);
+//                if (old_meta_list == NULL) {
+//                    free(file_buff);
+//                    break;
+//                }
+//
+//                new_meta_list = fdfs_split_metadata(meta_buff, & new_meta_count, &result);
+//                if (new_meta_list == NULL) {
+//                    free(file_buff);
+//                    free(old_meta_list);
+//                    break;
+//                }
+//            } while (false);
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+//    }
 
     public static void STORAGE_PROTO_CMD_DOWNLOAD_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
 
@@ -203,12 +285,10 @@ public class StorageService {
      * @param pClientInfo
      * @param fileSize
      * @param crc32
-     * @param fileName
+     * @param
      * @return
      */
-    public static String storageGetFilename(StorageClientInfo pClientInfo, int startTime, long fileSize,
-                                            int crc32, char[] szFormattedExt) {
-
+    public static String storageGetFilename(StorageClientInfo pClientInfo, int startTime, long fileSize, int crc32, char[] szFormattedExt) {
         int fileNameLen;
         int storePathIndex = ((StorageUploadInfo) pClientInfo.fileContext.extra_info).getTrunkInfo().getPath()
                 .getStorePathIndex();

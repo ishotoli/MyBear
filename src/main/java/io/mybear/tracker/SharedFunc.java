@@ -21,6 +21,10 @@ public class SharedFunc {
         return false;
     }
 
+    public static boolean delete(String fileName) {
+        File file = new File(fileName);
+        return file.delete();
+    }
     /**
      * 转换路径 如果最后一个字符为 '/' 则转换为 '\0'
      *
