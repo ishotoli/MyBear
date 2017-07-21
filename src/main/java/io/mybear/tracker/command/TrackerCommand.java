@@ -1,6 +1,5 @@
 package io.mybear.tracker.command;
 
-import io.mybear.net2.Connection;
 import io.mybear.net2.tracker.TrackerConnection;
 import io.mybear.net2.tracker.TrackerMessage;
 

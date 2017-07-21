@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * ByteBuffer数组，扩展的时候从BufferPool里动态获取可用的Buffer 非线程安全类
- * 
- * 
  * @author wuzhih
  *
  * copy from Mycat-NIO io.mycat.net2.ByteBufferArray
@@ -32,44 +30,11 @@ public class TrackerByteBufferArray {
     private byte[] packetCmds = new byte[CAPACITY];
     private int curPacageIndex = 0;
     private final int blockCapasity;
-    private int curHandlingPacageIndex = 0;
 
     public TrackerByteBufferArray(ReactorBufferPool bufferPool) {
         super();
         this.bufferPool = bufferPool;
         blockCapasity = bufferPool.getSharedBufferPool().getChunkSize();
-    }
-
-    public int getCurPacageIndex() {
-        return curPacageIndex;
-    }
-
-    /**
-     * 当前线程是否是此对象所属的Reactor线程
-     * 
-     * @return
-     */
-    public boolean iscurReactorThread() {
-        return (Thread.currentThread() == bufferPool.getReactorThread());
-    }
-
-    /**
-     * 获取当前ByteBuffer Posion位置相对应的绝对位置，比如此ByteBuffer之前有2个ByteBuffer，则绝对位置为
-     * 第一个的长度+第二个的长度+本身的postion
-     * 
-     * @return
-     */
-    public int getAbsByteBufPosion(ByteBuffer theButBuf) {
-        int absPos = 0;
-        int endBlock = writedBlockLst.size() - 1;
-        for (int i = 0; i < endBlock; i++) {
-            ByteBuffer bytBuf = writedBlockLst.get(i);
-            if (bytBuf != theButBuf) {
-                absPos += bytBuf.position();
-            }
-        }
-        return absPos + theButBuf.position();
-
     }
 
     /**
@@ -88,19 +53,6 @@ public class TrackerByteBufferArray {
     }
 
     /**
-     * 计算所有packages的字节总数
-     * 
-     * @return
-     */
-    public long calcTotalPacketSize() {
-        long totalBytes = 0;
-        for (int i = 0; i < this.curPacageIndex + 1; i++) {
-            totalBytes += packetLengths[i];
-        }
-        return totalBytes;
-    }
-
-    /**
      * 得到队列中最后一个ByteBuffer，也即当前可以写入的位置，如果队列为空，则返回NULL
      * 
      * @return
@@ -108,14 +60,6 @@ public class TrackerByteBufferArray {
     public ByteBuffer getLastByteBuffer() {
         return writedBlockLst.get(writedBlockLst.size() - 1);
 
-    }
-
-    public int getBlockCount() {
-        return writedBlockLst.size();
-    }
-
-    public ByteBuffer getBlock(int i) {
-        return writedBlockLst.get(i);
     }
 
     /**
@@ -131,19 +75,6 @@ public class TrackerByteBufferArray {
 
     public ArrayList<ByteBuffer> getWritedBlockLst() {
         return writedBlockLst;
-    }
-
-    /**
-     * 设置package
-     * 
-     * @param packageLenth 包长度，不包括header
-     */
-    public void setCurPacketLength(long packageLenth) {
-        this.packetLengths[curPacageIndex] = packageLenth;
-    }
-
-    public void setCurPacketCmd(byte cmd) {
-        this.packetCmds[curPacageIndex] = cmd;
     }
 
     /**
@@ -179,30 +110,8 @@ public class TrackerByteBufferArray {
         return curWritingBlock;
     }
 
-    public ByteBuffer checkWriteBuffer(int capacity) {
-        ByteBuffer curWritingBlock = getLastByteBuffer();
-        if (capacity > curWritingBlock.remaining()) {
-            curWritingBlock = addNewBuffer();
-            return curWritingBlock;
-        } else {
-            return curWritingBlock;
-        }
-    }
-
     public long getCurPacageLength() {
         return this.packetLengths[this.curPacageIndex];
-    }
-
-    public byte getCurPacageCmd() {
-        return getPacageCmd(this.curPacageIndex);
-    }
-
-    public byte getPacageCmd(int index) {
-        return this.packetCmds[index];
-    }
-
-    public long getPacageLength(int index) {
-        return this.packetLengths[index];
     }
 
     /**
@@ -226,37 +135,6 @@ public class TrackerByteBufferArray {
 
     }
 
-    public void increatePacketIndex() {
-        // 超过预期报文数量，将数组容量扩展
-        if (++curPacageIndex >= CAPACITY) {
-            packetLengths = Arrays.copyOf(packetLengths, packetLengths.length + CAPACITY);
-            packetCmds = Arrays.copyOf(packetCmds, packetCmds.length + CAPACITY);
-        }
-    }
-
-    public byte readPacket(int packetIndex, int offset) {
-        // TODO 性能可能很低
-        final int blockCapasity = this.blockCapasity;
-        long totalBytes = 0;
-        for (int i = 0; i < packetIndex; i++) {
-            totalBytes += packetLengths[i];
-        }
-        totalBytes += offset;
-        int blockIndex = 0;
-        int blockOffset = 0;
-        int endBlock = writedBlockLst.size();
-        for (int i = 0; i < endBlock; i++) {
-            ByteBuffer bytBuf = writedBlockLst.get(i);
-            if (totalBytes >= bytBuf.position()) {
-                totalBytes -= bytBuf.position();
-                blockIndex++;
-            } else {
-                blockOffset = (int)totalBytes;
-                break;
-            }
-        }
-        return writedBlockLst.get(blockIndex).get(blockOffset);
-    }
 
     public byte readByte(long offset){
         final int blockCapasity = this.blockCapasity;
@@ -282,14 +160,6 @@ public class TrackerByteBufferArray {
             | (readByte(offset++) & 0xFFL) << 16
             | (readByte(offset++) & 0xFFL) << 8
             | (readByte(offset++) & 0xFFL);
-    }
-
-    public int getCurHandlingPacageIndex() {
-        return curHandlingPacageIndex;
-    }
-
-    public void setCurHandlingPacageIndex(int curHandlingPacageIndex) {
-        this.curHandlingPacageIndex = curHandlingPacageIndex;
     }
 
     public long compact(long offset){

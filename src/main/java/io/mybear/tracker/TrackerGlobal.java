@@ -1,10 +1,15 @@
 package io.mybear.tracker;
 
+import java.util.Date;
+
 /**
  * Created by jamie on 2017/6/21.
  */
 public class TrackerGlobal {
     public static final int DEFAULT_SERVER_PORT = 22122;
+
+
+    public static Date gUpTime = new Date(0l);
 
     public static final int TRACKER_SYNC_TO_FILE_FREQ = 1000;
     public static final int TRACKER_MAX_PACKAGE_SIZE = 8 *1024;
@@ -67,5 +72,6 @@ public class TrackerGlobal {
     public static final boolean g_http_servers_dirty = false;
 
     public static final char[] g_exe_name = {0};
+
 
 }
