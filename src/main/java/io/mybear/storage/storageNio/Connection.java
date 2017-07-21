@@ -361,7 +361,7 @@ public abstract class Connection implements ClosableConnection {
                 }
             }
             int written = 0;
-            io.mybear.net2.ByteBufferArray arry = (io.mybear.net2.ByteBufferArray) flagData;
+            ByteBufferArray arry = (ByteBufferArray) flagData;
             for (ByteBuffer buffer : arry.getWritedBlockLst()) {
                 if (buffer != null) {
                     while (buffer.hasRemaining()) {
@@ -369,7 +369,7 @@ public abstract class Connection implements ClosableConnection {
                         if (written > 0) {
                             lastWriteTime = TimeUtil.currentTimeMillis();
                             netOutBytes += written;
-                            io.mybear.net2.NetSystem.getInstance().addNetOutBytes(written);
+                            //io.mybear.net2.NetSystem.getInstance().addNetOutBytes(written);
                         } else {
                             break;
                         }

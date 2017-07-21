@@ -193,7 +193,7 @@ public class ByteBufferArray {
      * 回收此对象，用完需要在合适的地方释放，否則產生內存泄露問題
      */
     public void recycle() {
-        //  bufferPool.recycle(this);
+        bufferPool.recycle(this);
     }
 
     protected void clear() {

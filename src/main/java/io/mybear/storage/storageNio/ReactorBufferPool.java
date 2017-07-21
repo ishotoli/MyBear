@@ -1,6 +1,7 @@
 package io.mybear.storage.storageNio;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 /**
@@ -18,8 +19,8 @@ public class ReactorBufferPool {
     private final SharedBufferPool sharedBufferPool;
     // 最多存放多少个byteBuffer，超过部分则放入共享池
     private final int maxFreeCount;
-    // 池化的ByteBufferArray对象，为了降低创建的频率
-    //  private final LinkedList<ByteBufferArray> extByteBufferPool = new LinkedList<ByteBufferArray>();
+    //池化的ByteBufferArray对象，为了降低创建的频率
+    private final LinkedList<ByteBufferArray> extByteBufferPool = new LinkedList<ByteBufferArray>();
 
     public ReactorBufferPool(SharedBufferPool shearedBufferPool, Thread reactorThread, int maxFreeCount) {
         this.sharedBufferPool = shearedBufferPool;
@@ -58,6 +59,29 @@ public class ReactorBufferPool {
 
     }
 
+    /**
+     * 回收ByteBufferArrayd
+     *
+     * @param
+     */
+    public void recycle(ByteBufferArray extBuffer) {
+        if (Thread.currentThread() == reactorThread) {
+            extByteBufferPool.add(extBuffer);
+            // reactor线程回收
+            if (freeBuffers.size() < maxFreeCount) {
+                ArrayList<ByteBuffer> arrayList = extBuffer.getWritedBlockLst();
+                long size = arrayList.size();
+                for (int i = 0; i < size; i++) {
+                    freeBuffers.add(arrayList.get(i));
+                }
+                return;
+            }
+        }
+        // 共享池回收
+        sharedBufferPool.recycle(extBuffer.getWritedBlockLst());
+
+    }
+
     public ByteBuffer allocateByteBuffer() {
         if (Thread.currentThread() == reactorThread) {
             if (!freeBuffers.isEmpty()) {
@@ -71,8 +95,13 @@ public class ReactorBufferPool {
     }
 
     public ByteBufferArray allocate() {
-
-        // 另外线程要求分配或者当前用完了，从共享BufferPool获取
+        if (Thread.currentThread() == reactorThread) {
+            if (!extByteBufferPool.isEmpty()) {
+                ByteBufferArray result = extByteBufferPool.removeLast();
+                result.clear();
+                return result;
+            }
+        }
         return new ByteBufferArray(this);
     }
 
