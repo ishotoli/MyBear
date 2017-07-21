@@ -1,7 +1,6 @@
-package io.mybear;
+package io.mybear.storage;
 
 
-import io.mybear.storage.FdfsStoraged;
 import io.mybear.tracker.Tracker;
 import org.csource.fastdfs.*;
 
@@ -10,7 +9,7 @@ import java.net.InetSocketAddress;
 /**
  * Created by jamie on 2017/6/20.
  */
-public class TestStorageProtoCmdDownloadFile {
+public class StorageDownloadFileTest {
 
     public static void main(String[] args) throws Exception {
         Thread trackerServiceServer = new Thread(() -> {
@@ -30,13 +29,12 @@ public class TestStorageProtoCmdDownloadFile {
             }
         });
         storageServiceServer.start();
-
+        Thread.sleep(2000);
 
         System.out.println("java.version=" + System.getProperty("java.version"));
 
-        String group_name = "group_name";
-        String fileId = "fileId";
-        String remote_filename = "remote_filename";
+        String group_name = "group1";
+        String remote_filename = "group1/data/00/00/AAAAAGT9WIGAAAAOAAD5SAAB4kAexe";
         long file_offset = 0;
         long download_bytes = 256;
 

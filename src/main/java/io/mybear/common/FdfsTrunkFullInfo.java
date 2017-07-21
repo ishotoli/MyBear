@@ -11,8 +11,8 @@ public class FdfsTrunkFullInfo implements Serializable{
      * //normal or hold
      */
     private char status;
-    private FDFSTrunkPathInfo path;
-    private FDFSTrunkFileInfo file;
+    private FdfsTrunkPathInfo path;
+    private FdfsTrunkFileInfo file;
 
     public char getStatus() {
         return status;
@@ -22,19 +22,19 @@ public class FdfsTrunkFullInfo implements Serializable{
         this.status = status;
     }
 
-    public FDFSTrunkPathInfo getPath() {
+    public FdfsTrunkPathInfo getPath() {
         return path;
     }
 
-    public void setPath(FDFSTrunkPathInfo path) {
+    public void setPath(FdfsTrunkPathInfo path) {
         this.path = path;
     }
 
-    public FDFSTrunkFileInfo getFile() {
+    public FdfsTrunkFileInfo getFile() {
         return file;
     }
 
-    public void setFile(FDFSTrunkFileInfo file) {
+    public void setFile(FdfsTrunkFileInfo file) {
         this.file = file;
     }
 

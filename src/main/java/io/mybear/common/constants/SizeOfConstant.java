@@ -12,4 +12,12 @@ public class SizeOfConstant {
      * sizeof(int)的值
      */
     public static final int SIZE_OF_INT = 4;
+    /**
+     * TRACKER_HEADER的长度
+     */
+    public static final int SIZE_OF_TRACKER_HEADER = 10;
+    /**
+     * FDFSStorePathInfo的长度
+     */
+    public static final int SIZE_OF_FDFS_STORE_PATH_INFO = 8;
 }

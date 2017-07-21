@@ -17,7 +17,7 @@ import java.nio.file.StandardOpenOption;
 public class ProcessAction {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessAction.class);
 
-    public static Path getBasePathFromConfFile(String filename) throws Exception {
+    public static String getBasePathFromConfFile(String filename) throws Exception {
         StorageGlobal.init(filename);
         return StorageGlobal.BASE_PATH;
     }

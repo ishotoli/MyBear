@@ -179,7 +179,7 @@ public abstract class Connection implements ClosableConnection {
     }
 
     public boolean isConnected() {
-        return (this.state == Connection.State.connected);
+        return (this.state == State.connected);
     }
 
     private ByteBuffer compactReadBuffer(ByteBuffer buffer, int offset) {
@@ -613,8 +613,8 @@ public abstract class Connection implements ClosableConnection {
         }
     }
 
-    public void setTaskType(Connection.TaskType type) throws Exception {
-        Connection.TaskType taskType = this.taskType;
+    public void setTaskType(TaskType type) throws Exception {
+        TaskType taskType = this.taskType;
         if (taskType == Download) {
             switch (type) {
                 case Download:
@@ -662,7 +662,7 @@ public abstract class Connection implements ClosableConnection {
         return direction;
     }
 
-    public void setDirection(Connection.Direction in) {
+    public void setDirection(Direction in) {
         this.direction = in;
 
     }

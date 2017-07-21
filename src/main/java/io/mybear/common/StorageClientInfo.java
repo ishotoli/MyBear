@@ -8,9 +8,10 @@ import java.util.function.Function;
 /**
  * Created by jamie on 2017/6/22.
  */
-public class StorageClientInfo implements Serializable{
+public class StorageClientInfo implements Serializable {
 
-    final static int FDFS_STORAGE_ID_MAX_SIZE = 16;
+    public final static int FDFS_STORAGE_ID_MAX_SIZE = 16;
+
     private static final long serialVersionUID = -832774976898639721L;
     /**
      * nio线程的索引
@@ -131,18 +132,18 @@ public class StorageClientInfo implements Serializable{
     @Override
     public String toString() {
         return "StorageClientInfo{" +
-                "nioThreadIndex=" + nioThreadIndex +
-                ", canceled=" + canceled +
-                ", stage=" + stage +
-                ", storageServerId=" + Arrays.toString(storageServerId) +
-                ", fileContext=" + fileContext +
-                ", totalLength=" + totalLength +
-                ", totalOffset=" + totalOffset +
-                ", requestLength=" + requestLength +
-                ", pSrcStorage=" + pSrcStorage +
-                ", dealFunc=" + dealFunc +
-                ", extraArg=" + extraArg +
-                ", cleanFunc=" + cleanFunc +
-                '}';
+            "nioThreadIndex=" + nioThreadIndex +
+            ", canceled=" + canceled +
+            ", stage=" + stage +
+            ", storageServerId=" + Arrays.toString(storageServerId) +
+            ", fileContext=" + fileContext +
+            ", totalLength=" + totalLength +
+            ", totalOffset=" + totalOffset +
+            ", requestLength=" + requestLength +
+            ", pSrcStorage=" + pSrcStorage +
+            ", dealFunc=" + dealFunc +
+            ", extraArg=" + extraArg +
+            ", cleanFunc=" + cleanFunc +
+            '}';
     }
 }
