@@ -82,22 +82,22 @@ public class FdfsStorageStat {
     /* last update timestamp as source server,
            current server' timestamp
     */
-    private Date lastSourceUpdate;
+    private Date lastSourceUpdate = new Date(0l);
 
     /* last update timestamp as dest server,
            current server' timestamp
     */
-    private Date lastSyncUpdate;
+    private Date lastSyncUpdate = new Date(0l);
 
     /* last syned timestamp,
        source server's timestamp
     */
-    private Date lastSyncedTimestamp;
+    private Date lastSyncedTimestamp = new Date(0l);
 
     // last heart beat time
-    private Date lastHeartBeatTime;
+    private Date lastHeartBeatTime = new Date(0l);
 
-    private Connection connection;
+    private Connection connection = new Connection();
 
     public long getTotalUploadCount() {
         return totalUploadCount;
