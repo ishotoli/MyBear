@@ -1,6 +1,7 @@
 package io.mybear.common.utils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -9,6 +10,7 @@ import java.util.List;
 public class MetadataUtil {
     public static final String FDFS_RECORD_SEPERATOR = "\u0001";
     public static final String FDFS_FIELD_SEPERATOR = "\u0002";
+    public static final Comparator<String[]> comparator = (x, y) -> x[0].length() - y[1].length();
 
     /**
      * split metadata to name value pair array
@@ -50,7 +52,7 @@ public class MetadataUtil {
     public static int sortMetadataBuff(StringBuilder s) {
         List<String[]> meta_list = splitMetadata(s);
         if (meta_list == null || meta_list.size() == 0) return -1;
-        meta_list.sort((x, y) -> x[0].length() - y[1].length());
+        meta_list.sort(comparator);
         s.setLength(0);
         s.append(packMetadata(meta_list, meta_list.size()));
         return 0;

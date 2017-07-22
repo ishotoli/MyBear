@@ -32,4 +32,10 @@ public class FdfsDefine {
     public static final double FDHT_DEFAULT_MPOOL_LOAD_FACTOR = 0.75;
     public static final int FDHT_DEFAULT_MPOOL_CLEAR_MIN_INTEVAL = 300;
 
+    public static final int CHECK_ACTIVE_DEF_INTERVAL = 100;
+    public static final int DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY = 86400;
+    public static final int DEFAULT_STORAGE_SYNC_FILE_MAX_TIME = 300;
+
+
+
 }
