@@ -17,8 +17,8 @@ public class FDFSStorageStat {
     public long success_modify_count;
     public long total_truncate_count;
     public long success_truncate_count;
-    public long total_set_meta_count;
-    public long success_set_meta_count;
+    public LongAdder total_set_meta_count = new LongAdder();
+    public LongAdder success_set_meta_count = new LongAdder();
     public long total_delete_count;
     public long success_delete_count;
     public long total_download_count;

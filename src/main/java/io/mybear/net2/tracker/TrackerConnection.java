@@ -1,13 +1,13 @@
 package io.mybear.net2.tracker;
 
 import io.mybear.common.ApplicationContext;
-import io.mybear.net2.ByteBufferArray;
 import io.mybear.net2.Connection;
 import io.mybear.net2.ReactorBufferPool;
 import io.mybear.tracker.types.FdfsGroupInfo;
 import io.mybear.tracker.types.FdfsStorageDetail;
 import io.mybear.tracker.types.FdfsStorageStat;
 import io.mybear.tracker.types.TrackerClientInfo;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -16,12 +16,9 @@ import java.nio.channels.SocketChannel;
 
 public class TrackerConnection extends Connection {
 
-    private long readBufferOffset;
-
     protected TrackerByteBufferArray readBufferArray;
-
     protected TrackerByteBufferArray writeBufferArray;
-
+    private long readBufferOffset;
     private TrackerClientInfo clientInfo;
 
     private TrackerMessage message = new TrackerMessage();
@@ -110,6 +107,14 @@ public class TrackerConnection extends Connection {
     public void write(byte[] bytes) {
         writeBufferArray.write(bytes);
         this.enableWrite(true);
+    }
+
+    public TrackerByteBufferArray getWriteBufferArray() {
+        if (writeBufferArray == null) {
+            writeBufferArray = getMyBufferPool().allocateTrackerByteBufferArray();
+            writeBufferArray.addNewBuffer();
+        }
+        return writeBufferArray;
     }
 
     @Override

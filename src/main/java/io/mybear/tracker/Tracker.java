@@ -39,7 +39,7 @@ public class Tracker {
     }
 
     static String getGroupName(ByteBuffer byteBuffer) {
-        byte[] bytes = new byte[15];
+        byte[] bytes = new byte[16];
         byteBuffer.get(bytes);
         return new String(bytes);
     }

@@ -5,6 +5,7 @@ import io.mybear.common.StorageFileContext;
 import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageGlobal;
 import io.mybear.storage.storageNio.StorageClientInfo;
+import io.mybear.tracker.SharedFunc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +68,10 @@ public class DownloadFileParserHandler implements ParserHandler<StorageClientInf
         c.fileContext.filename += s;
         c.fileContext.filename = c.fileContext.filename.substring(StorageGlobal.g_group_name.length(), c.fileContext.filename.length());
         c.fileContext.filename = StorageGlobal.BASE_PATH + c.fileContext.filename;
+        if (!SharedFunc.fileExists(c.fileContext.filename)) {
+            LOGGER.error("没有这个文件:" + c.fileContext.filename);
+            return;
+        }
         c.fileContext.dioExecutorService = StorageDio.getThreadIndex(c, 0, 0);
         c.dealFunc = (con) -> {
             try {
@@ -79,9 +84,9 @@ public class DownloadFileParserHandler implements ParserHandler<StorageClientInf
                     //   con.fileContext.fileChannel = FileChannel.open(Paths.get(con.fileContext.filename), StandardOpenOption.READ);
                     long size = con.fileContext.end = con.fileContext.fileChannel.size();
                     header = con.getMyBufferPool().allocateByteBuffer().putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
-                    con.fileContext.done_callback = (co) -> {
-                        co.disableWrite();
-                    };
+//                    con.fileContext.done_callback = (co) -> {
+//                        co.disableWrite();
+//                    };
                     con.dealFunc = StorageDio::dio_read_file;
                     sendDownloadFileHead(con, header);
                     return 0;

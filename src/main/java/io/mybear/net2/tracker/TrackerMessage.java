@@ -59,32 +59,42 @@ public class TrackerMessage {
         this.position = position;
     }
 
-    public long readLong(){
+    public byte[] getRestByteArray() {
+        byte[] bytes = new byte[(int) (this.getPkgLen() - this.position)];
+        if (this.data.getWritedBlockLst().size() == 1) {
+            this.data.getLastByteBuffer().get(bytes);
+        } else {
+            System.out.println("此函数没写完整");
+        }
+        return bytes;
+    }
+
+    public long readLong() {
         long l = data.readLong(position);
         position += 8;
         return l;
     }
 
-    public int readInt(){
+    public int readInt() {
         int i = data.readInt(position);
         position += 4;
         return i;
     }
 
-    public byte readByte(){
+    public byte readByte() {
         return data.readByte(position++);
     }
 
-    public byte[] getTrackerReplay(){
+    public byte[] getTrackerReplay() {
         byte[] bytes = new byte[10];
-        bytes[0] = (byte)((this.pkgLen >> 56) & 0xff);
-        bytes[1] = (byte)((this.pkgLen >> 48) & 0xff);
-        bytes[2] = (byte)((this.pkgLen >> 40) & 0xff);
-        bytes[3] = (byte)((this.pkgLen >> 32) & 0xff);
-        bytes[4] = (byte)((this.pkgLen >> 24) & 0xff);
-        bytes[5] = (byte)((this.pkgLen >> 16) & 0xff);
-        bytes[6] = (byte)((this.pkgLen >> 8) & 0xff);
-        bytes[7] = (byte)(this.pkgLen & 0xff);
+        bytes[0] = (byte) ((this.pkgLen >> 56) & 0xff);
+        bytes[1] = (byte) ((this.pkgLen >> 48) & 0xff);
+        bytes[2] = (byte) ((this.pkgLen >> 40) & 0xff);
+        bytes[3] = (byte) ((this.pkgLen >> 32) & 0xff);
+        bytes[4] = (byte) ((this.pkgLen >> 24) & 0xff);
+        bytes[5] = (byte) ((this.pkgLen >> 16) & 0xff);
+        bytes[6] = (byte) ((this.pkgLen >> 8) & 0xff);
+        bytes[7] = (byte) (this.pkgLen & 0xff);
         bytes[8] = this.cmd;
         bytes[9] = this.status;
         return bytes;
