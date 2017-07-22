@@ -23,6 +23,7 @@ public class UploadSlaveFileParserHandler implements ParserHandler<StorageClient
         StorageUploadInfo uploadInfo = new StorageUploadInfo();
         con.fileContext = new StorageFileContext();
         con.fileContext.extra_info = uploadInfo;
+        con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, 0, 0);
         FdfsTrunkFullInfo trunkFullInfo = new FdfsTrunkFullInfo();
         uploadInfo.setTrunkInfo(trunkFullInfo);
         FdfsTrunkPathInfo pathInfo = new FdfsTrunkPathInfo();

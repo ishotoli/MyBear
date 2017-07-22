@@ -1,6 +1,6 @@
 package io.mybear.storage;
 
-import io.mybear.tracker.Tracker;
+import io.mybear.tracker.FdfsTrackerd;
 import org.csource.fastdfs.*;
 
 import java.net.InetSocketAddress;
@@ -12,7 +12,7 @@ public class StorageDeleteFileTest {
     public static void main(String[] args) throws Exception {
         Thread tracker = new Thread(() -> {
             try {
-                Tracker.main(args);
+                FdfsTrackerd.main(args);
             } catch (Exception e) {
                 e.printStackTrace();
             }

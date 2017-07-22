@@ -1,20 +1,12 @@
 package io.mybear.tracker;
 
 import io.mybear.common.ApplicationContext;
-import io.mybear.net2.ConnectionFactory;
-import io.mybear.net2.ExecutorUtil;
-import io.mybear.net2.NIOAcceptor;
-import io.mybear.net2.NIOConnector;
-import io.mybear.net2.NIOReactorPool;
-import io.mybear.net2.NameableExecutor;
-import io.mybear.net2.NamebleScheduledExecutor;
-import io.mybear.net2.NetSystem;
-import io.mybear.net2.SharedBufferPool;
-import io.mybear.net2.SystemConfig;
+import io.mybear.net2.*;
 import io.mybear.net2.tracker.TrackerConnectionFactory;
-import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -26,14 +18,14 @@ public class FdfsTrackerd {
         ApplicationContext context = new ApplicationContext("tracker.conf");
 
         // Business Executor ，用来执行那些耗时的任务
-        NameableExecutor businessExecutor = ExecutorUtil.create("BusinessExecutor", 10);
+        NameableExecutor businessExecutor = ExecutorUtil.create("BusinessExecutor", 1);
         // 定时器Executor，用来执行定时任务
-        NamebleScheduledExecutor timerExecutor = ExecutorUtil.createSheduledExecute("Timer", 5);
+        NamebleScheduledExecutor timerExecutor = ExecutorUtil.createSheduledExecute("Timer", 1);
 
         SharedBufferPool sharedPool = new SharedBufferPool(1024 * 1024 * 100, 1024);
         new NetSystem(sharedPool, businessExecutor, timerExecutor);
         // Reactor pool
-        NIOReactorPool reactorPool = new NIOReactorPool("Reactor Pool", 5, sharedPool);
+        NIOReactorPool reactorPool = new NIOReactorPool("Reactor Pool", 2, sharedPool);
         NIOConnector connector = new NIOConnector("NIOConnector", reactorPool);
         connector.start();
         NetSystem.getInstance().setConnector(connector);

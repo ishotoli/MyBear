@@ -1,6 +1,6 @@
 package io.mybear.storage;
 
-import io.mybear.tracker.Tracker;
+import io.mybear.tracker.FdfsTrackerd;
 import org.csource.common.NameValuePair;
 import org.csource.fastdfs.*;
 
@@ -13,7 +13,7 @@ public class StorageSetMetaDataTest {
     public static void main(String[] args) throws Exception {
         Thread trackerServiceServer = new Thread(() -> {
             try {
-                Tracker.main(args);
+                FdfsTrackerd.main(args);
             } catch (Exception e) {
                 e.printStackTrace();
             }

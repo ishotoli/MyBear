@@ -1,11 +1,11 @@
 package io.mybear.net2.tracker;
 
 import io.mybear.net2.ReactorBufferPool;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 /**
  * ByteBuffer数组，扩展的时候从BufferPool里动态获取可用的Buffer 非线程安全类
@@ -25,11 +25,11 @@ public class TrackerByteBufferArray {
     private final ReactorBufferPool bufferPool;
 
     private final ArrayList<ByteBuffer> writedBlockLst = new ArrayList<>(4);
+    private final int blockCapasity;
     // 此Array中包括的消息报文长度（byte 字节的长度而不是writedBlockLst中的次序）
     private long[] packetLengths = new long[CAPACITY];
     private byte[] packetCmds = new byte[CAPACITY];
     private int curPacageIndex = 0;
-    private final int blockCapasity;
 
     public TrackerByteBufferArray(ReactorBufferPool bufferPool) {
         super();
