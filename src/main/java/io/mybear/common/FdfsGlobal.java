@@ -1,9 +1,13 @@
 package io.mybear.common;
 
+import io.mybear.common.constants.CommonConstant;
 import io.mybear.tracker.TrackerTypes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 import static io.mybear.common.FdfsDefine.DEFAULT_MAX_CONNECTONS;
 import static io.mybear.common.FdfsDefine.FDFS_STORAGE_SERVER_DEF_PORT;
@@ -17,10 +21,11 @@ import static org.csource.fastdfs.ClientGlobal.DEFAULT_NETWORK_TIMEOUT;
  */
 public class FdfsGlobal {
 
+    public static Logger log = LoggerFactory.getLogger(FdfsGlobal.class);
+
     public static final int FDFS_FILE_EXT_NAME_MAX_LEN = 6;
     public static int g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
     public static int g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
-
 
     public static int g_server_port = FDFS_STORAGE_SERVER_DEF_PORT;
     public static String g_http_domain = "";
@@ -115,5 +120,34 @@ public class FdfsGlobal {
     public static int g_upload_priority = DEFAULT_UPLOAD_PRIORITY;
     public static long g_up_time = 0;
     public static int g_log_file_keep_days = 0;
-    public static String g_fdfs_base_path = File.separatorChar+"tmp";
+    public static String g_fdfs_base_path = File.separatorChar + "tmp";
+
+    /**
+     * 检验文件名是否合法
+     *
+     * @param filename
+     * @param len
+     * @return
+     */
+    public static int fdfs_check_data_filename(final char[] filename, final int len) {
+        if (filename == null || filename.length < 7) {
+            log.error(CommonConstant.LOG_FORMAT, "fdfs_check_data_filename", "", String.format("the filename is null or the filename is lower 7"));
+            return -1;
+        }
+        String fileName = new String(filename);
+        if (len < 6) {
+            log.error(CommonConstant.LOG_FORMAT, "fdfs_check_data_filename", "", String.format("the length=%d of filename %s is too short", fileName, len));
+            return -1;
+        }
+        if (!CommonDefine.IS_UPPER_HEX(filename[0]) || !CommonDefine.IS_UPPER_HEX(filename[1]) || filename[2] != '/' ||
+                !CommonDefine.IS_UPPER_HEX(filename[3]) || !CommonDefine.IS_UPPER_HEX(filename[4]) || filename[5] != '/') {
+            log.error(CommonConstant.LOG_FORMAT, "fdfs_check_data_filename", "", String.format("the format of filename  %s is invalid", fileName));
+            return -1;
+        }
+        if (fileName.indexOf('/', 6) > 0) {
+            log.error(CommonConstant.LOG_FORMAT, "fdfs_check_data_filename", "", String.format("the format of filename  %s is invalid", fileName));
+            return -1;
+        }
+        return 0;
+    }
 }

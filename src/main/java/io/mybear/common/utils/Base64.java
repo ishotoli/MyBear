@@ -217,6 +217,121 @@ public class Base64 {
         }
     }
 
+    /**
+     * 这里会返回一个新的 dest
+     *
+     * @param context
+     * @param src
+     * @param nSrcLen
+     * @param dest
+     * @param dest_len
+     * @return
+     */
+    public static char[] base64_decode_auto(Base64Context context, final char[] src,
+                                            final int nSrcLen, char[] dest) {
+        int nRemain;
+        int nPadLen;
+        int nNewLen;
+        char[] tmpBuff = new char[256];
+        char[] pBuff;
+        nRemain = nSrcLen % 4;
+        if (nRemain == 0) {
+            return base64_decode(context, src, nSrcLen, dest);
+        }
+        nPadLen = 4 - nRemain;
+        nNewLen = nSrcLen + nPadLen;
+        if (nNewLen <= tmpBuff.length) {
+            pBuff = tmpBuff;
+        } else {
+            pBuff = new char[nNewLen];
+        }
+        System.arraycopy(src, 0, pBuff, 0, nSrcLen);
+        Arrays.fill(pBuff, nSrcLen, nSrcLen + nPadLen, (char) context.getPadCh());
+        return base64_decode(context, pBuff, nNewLen, dest);
+    }
+
+    /**
+     * decode a well-formed complete base64 string back into an array of bytes.
+     * It must have an even multiple of 4 data characters (not counting \n),
+     * padded out with = as needed.
+     * 这里会返回一个新的dest
+     */
+    private static char[] base64_decode(Base64Context context, final char[] src,
+                                        final int nSrcLen, char[] dest) {
+        // tracks where we are in a cycle of 4 input chars.
+        int cycle;
+        // where we combine 4 groups of 6 bits and take apart as 3 groups of 8.
+        int combined;
+
+        // will be an even multiple of 4 chars, plus some embedded \n
+        int dummies;
+        int value;
+        char[] pSrc;
+        char[] pSrcEnd;
+        char[] pDest;
+
+        cycle = 0;
+        combined = 0;
+        dummies = 0;
+        pDest = dest;
+        pSrcEnd = new char[src.length - nSrcLen];
+        System.arraycopy(src, nSrcLen, pSrcEnd, 0, src.length - nSrcLen);
+        pSrc = src;
+        int flag = 0;
+        for (int i = 0; i < nSrcLen; i++) {
+            value = context.getCharToValue()[pSrc[i]];
+            switch (value) {
+                case BASE64_IGNORE:
+                    // e.g. \n, just ignore it.
+                    break;
+                case BASE64_PAD:
+                    value = 0;
+                    dummies++;
+                    // fallthrough
+                default:
+               /* regular value character */
+                    switch (cycle) {
+                        case 0:
+                            combined = value;
+                            cycle = 1;
+                            break;
+                        case 1:
+                            combined <<= 6;
+                            combined |= value;
+                            cycle = 2;
+                            break;
+                        case 2:
+                            combined <<= 6;
+                            combined |= value;
+                            cycle = 3;
+                            break;
+                        case 3:
+                            combined <<= 6;
+                            combined |= value;
+                            // we have just completed a cycle of 4 chars.
+                            // the four 6-bit values are in combined in big-endian order
+                            // peel them off 8 bits at a time working lsb to msb
+                            // to get our original 3 8-bit bytes back
+                            pDest[flag++] = (char) (combined >> 16);
+                            pDest[flag++] = (char) ((combined & 0x0000FF00) >> 8);
+                            pDest[flag++] = (char) (combined & 0x000000FF);
+                            cycle = 0;
+                            break;
+                    }
+                    break;
+            }
+        } // end for
+        if (cycle != 0) {
+            char[] tempChar = new char[flag];
+            System.arraycopy(pDest, 0, tempChar, 0, tempChar.length);
+            log.info(CommonConstant.LOG_FORMAT, "base64_decode", "", String.format("Input to decode not an even multiple of 4 characters; pad with %c", context.getPadCh()));
+            return tempChar;
+        }
+        char[] tempChar = new char[flag - dummies];
+        System.arraycopy(pDest, 0, tempChar, 0, tempChar.length);
+        return tempChar;
+    }
+
     public static void main(String[] args) {
         char[] chars = "hello".toCharArray();
         int len = 0;

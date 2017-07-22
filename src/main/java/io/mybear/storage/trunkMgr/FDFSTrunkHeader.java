@@ -5,7 +5,7 @@ package io.mybear.storage.trunkMgr;
  */
 public class FDFSTrunkHeader {
     public byte fileType;
-    public byte[]/*6+2*/formattedExtName;
+    public char[]/*6+2*/formattedExtName;
     public int allocSize;
     public int fileSize;
     public int crc32;
