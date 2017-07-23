@@ -358,8 +358,8 @@ public class StorageService {
         StorageClientInfo pClientInfo;
         StorageFileContext pFileContext;
         char[] p;
-        FDFSTrunkHeader trunkHeader;
-        char[] group_name = new char[TrackerTypes.FDFS_GROUP_NAME_MAX_LEN + 1];
+        FDFSTrunkHeader trunkHeader = null;
+        char[] group_name = new char[TrackerTypes.FDFS_GROUP_NAME_MAX_LEN];
         char[] true_filename = new char[128];
         char[] filename;
         int filename_len;
@@ -368,7 +368,6 @@ public class StorageService {
         int result;
         int store_path_index;
         long nInPackLen;
-
         pClientInfo = (StorageClientInfo) pTask.arg;
         pFileContext = pClientInfo.fileContext;
 
@@ -386,13 +385,64 @@ public class StorageService {
                     "nInPackLen:" + nInPackLen + " < pTask.size " + pTask.size);
             return;
         }
-        if (TrackerTypes.FDFS_GROUP_NAME_MAX_LEN < SizeOfConstant.SIZE_OF_TRACKER_HEADER) {
-            p = new char[pTask.data.length + SizeOfConstant.SIZE_OF_TRACKER_HEADER];
-        } else {
-            p = new char[pTask.data.length + TrackerTypes.FDFS_GROUP_NAME_MAX_LEN];
-        }
+        p = new char[pTask.data.length + SizeOfConstant.SIZE_OF_TRACKER_HEADER];
         System.arraycopy(pTask.data, 0, p, 0, pTask.data.length);
-        System.arraycopy(group_name, 0, p, pTask.data.length, TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
+        System.arraycopy(p, 0, group_name, 0, TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
+        String groupName = new String(group_name);
+        if (!groupName.equals(FdfsGlobal.g_group_name)) {
+            log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
+                    String.format("client ip:%s, group_name: %s,not correct, should be: %s", pTask.getClientIp(), groupName, FdfsGlobal.g_group_name));
+            return;
+        }
+        filename = new char[p.length - TrackerTypes.FDFS_GROUP_NAME_MAX_LEN];
+        System.arraycopy(p, TrackerTypes.FDFS_GROUP_NAME_MAX_LEN, filename, TrackerTypes.FDFS_GROUP_NAME_MAX_LEN, p.length);
+        filename_len = (int) (nInPackLen - TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
+        STORAGE_ACCESS_STRCPY_FNAME2LOG(filename, filename_len, pClientInfo);
+        true_filename_len = filename_len;
+        if ((store_path_index = TrunkShared.storage_split_filename_ex(filename, true_filename_len, true_filename)) < 0) {
+            log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask), "获取文件名错误!");
+            return;
+        }
+        true_filename_len -= 4;
+        if ((result = FdfsGlobal.fdfs_check_data_filename(true_filename, true_filename_len)) != 0) {
+            return;
+        }
+        char[] true_filename_bak = new char[true_filename_len];
+        System.arraycopy(true_filename, 0, true_filename_bak, 0, true_filename_len);
+        // 像这样的数据 CD/00/wKi0hVjqXGeAcyFfAAGSt-FxG-0872.jpg
+        true_filename = true_filename_bak;
+        StorageUploadInfo upload = (StorageUploadInfo) pFileContext.extra_info;
+//       if ((result = TrunkShared.trunk_file_lstat(store_path_index, true_filename, true_filename_len, stat_buf, upload.getTrunkInfo(), trunkHeader)) != 0) {
+//            STORAGE_STAT_FILE_FAIL_LOG(result, pTask -> client_ip,
+//                    "logic", filename)
+//            return result;
+//        }
+//        if (S_ISREG(stat_buf.st_mode)) {
+//            pFileContext -> extra_info.upload.file_type =
+//                    _FILE_TYPE_REGULAR;
+//            pFileContext -> delete_flag |= STORAGE_DELETE_FLAG_FILE;
+//        } else if (S_ISLNK(stat_buf.st_mode)) {
+//            pFileContext -> extra_info.upload.file_type = _FILE_TYPE_LINK;
+//            pFileContext -> delete_flag |= STORAGE_DELETE_FLAG_LINK;
+//        } else {
+//            logError("file: "__FILE__", line: %d, "
+//                    "client ip: %s, file %s is NOT a file",
+//                    __LINE__, pTask -> client_ip,
+//                    pFileContext -> filename);
+//            return EINVAL;
+//        }
+
+    }
+
+    private static void STORAGE_ACCESS_STRCPY_FNAME2LOG(char[] filename, int filename_len, StorageClientInfo pClientInfo) {
+        if (FdfsGlobal.g_use_access_log) {
+            if (filename_len < SizeOfConstant.SIZE_OF_FNAME2LOG) {
+                //memcpy(des,src,leng);
+                System.arraycopy(filename, 0, pClientInfo.fileContext.fname2log, 0, filename_len + 1);
+            } else {
+                System.arraycopy(filename, 0, pClientInfo.fileContext.fname2log, 0, SizeOfConstant.SIZE_OF_FNAME2LOG);
+            }
+        }
     }
 
     /**

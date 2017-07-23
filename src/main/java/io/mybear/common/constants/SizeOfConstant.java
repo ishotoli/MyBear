@@ -20,4 +20,10 @@ public class SizeOfConstant {
      * FDFSStorePathInfo的长度
      */
     public static final int SIZE_OF_FDFS_STORE_PATH_INFO = 8;
+
+    public static final int SIZE_OF_FDFS_STORAGE_META_FILE_EXT = 3;
+    /**
+     * @see io.mybear.common.StorageFileContext#fname2log
+     */
+    public static final int SIZE_OF_FNAME2LOG = 131;
 }

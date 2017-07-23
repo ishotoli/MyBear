@@ -13,4 +13,14 @@ public class CommonDefine {
     public static final int DEFAULT_WORK_THREADS = 4;
     public static final int SYNC_LOG_BUFF_DEF_INTERVAL = 10;
     public static final int TIME_NONE = -1;
+
+    /**
+     * 文件夹的范围是 0~9 和 A~F
+     * @param ch
+     * @return
+     */
+    public static boolean IS_UPPER_HEX(char ch) {
+
+        return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F');
+    }
 }
