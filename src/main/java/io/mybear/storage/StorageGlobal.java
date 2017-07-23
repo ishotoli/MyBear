@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalTime;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -67,7 +68,7 @@ public class StorageGlobal {
     public static int g_write_mark_file_freq;      //write to mark file after sync N files
     public static int g_sync_stat_file_interval;   //sync storage stat info to disk interval
     public static FDFSStorageStat g_storage_stat = new FDFSStorageStat();
-    public static int g_stat_change_count;
+    public static LongAdder g_stat_change_count = new LongAdder();
     public static int g_sync_change_count; //sync src timestamp change counter
     public static long g_storage_join_time;  //my join timestamp
     public static int g_sync_until_timestamp;

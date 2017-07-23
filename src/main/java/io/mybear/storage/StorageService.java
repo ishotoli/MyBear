@@ -4,13 +4,11 @@ import com.alibaba.fastjson.JSON;
 import io.mybear.common.*;
 import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.constants.SizeOfConstant;
-import io.mybear.common.utils.Base64;
-import io.mybear.common.utils.HashUtil;
-import io.mybear.common.utils.MetadataUtil;
-import io.mybear.common.utils.RandomUtil;
+import io.mybear.common.utils.*;
 import io.mybear.storage.storageNio.ByteBufferArray;
 import io.mybear.storage.storageNio.FastTaskInfo;
 import io.mybear.storage.storageNio.StorageClientInfo;
+import io.mybear.storage.storageSync.StorageSync;
 import io.mybear.storage.trunkMgr.FDFSTrunkHeader;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.SharedFunc;
@@ -20,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,8 +30,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static io.mybear.common.utils.BasicTypeConversionUtil.int2buff;
 import static io.mybear.common.utils.BasicTypeConversionUtil.long2buff;
-import static io.mybear.storage.StorageSync.STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
-import static io.mybear.storage.StorageSync.STORAGE_OP_TYPE_SOURCE_UPDATE_FILE;
+import static io.mybear.storage.FdfsStoraged.g_current_time;
+import static io.mybear.storage.StorageGlobal.g_storage_stat;
+import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
+import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_UPDATE_FILE;
+import static io.mybear.tracker.TrackerProto.STORAGE_PROTO_CMD_RESP;
 import static io.mybear.tracker.TrackerProto.STORAGE_SET_METADATA_FLAG_OVERWRITE;
 
 
@@ -229,41 +231,40 @@ public class StorageService {
         return storage_set_metadata_done_callback(clientInfo, result);
     }
 
+    static void STORAGE_ACCESS_STRCPY_FNAME2LOG(String filename, StorageClientInfo pClientInfo) {
+
+    }
+
+    static void storage_log_access_log(StorageClientInfo clientInfo, String action, int status) {
+
+    }
+
     static int storage_set_metadata_done_callback(StorageClientInfo con, int error) {
-//        StorageFileContext pFileContext = con.fileContext;
-//        int result = 0;
-//        if (error == 0) {
-//            if (pFileContext.syncFlag  != '\0') {
-//                result = storage_binlog_write(pFileContext -> timestamp2log, \
-//                        pFileContext -> sync_flag, pFileContext -> fname2log);
-//            } else {
-//                result = err_no;
-//            }
-//        } else {
-//            result = err_no;
-//        }
-//
-//        if (result != 0) {
-//            g_storage_stat.total_set_meta_count.increment();
-//        } else {
-//            CHECK_AND_WRITE_TO_STAT_FILE3( \
-//                    g_storage_stat.total_set_meta_count, \
-//                    g_storage_stat.success_set_meta_count, \
-//                    g_storage_stat.last_source_update)
-//        }
-//
-//        pClientInfo -> total_length = sizeof(TrackerHeader);
-//        pClientInfo -> total_offset = 0;
-//        pTask -> length = pClientInfo -> total_length;
-//        pHeader = (TrackerHeader *) pTask -> data;
-//        pHeader -> status = result;
-//        pHeader -> cmd = STORAGE_PROTO_CMD_RESP;
-//        long2buff(pClientInfo -> total_length - sizeof(TrackerHeader), \
-//                pHeader -> pkg_len);
-//
-//        STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_SET_METADATA, result);
-//
-//        storage_nio_notify(pTask);
+        StorageFileContext pFileContext = con.fileContext;
+        int result = 0;
+        if (error == 0) {
+            if (pFileContext.syncFlag != '\0') {
+                result = StorageSync.storage_binlog_write(pFileContext.timestamp2log, pFileContext.syncFlag, pFileContext.fname2log);
+            } else {
+                result = -1;
+            }
+        } else {
+            result = -1;
+        }
+        if (result != 0) {
+            g_storage_stat.total_set_meta_count.increment();
+        } else {
+            //CHECK_AND_WRITE_TO_STAT_FILE3
+            g_storage_stat.total_set_meta_count.increment();
+            g_storage_stat.success_set_meta_count.increment();
+            g_storage_stat.last_source_update = g_current_time;
+            StorageGlobal.g_stat_change_count.increment();
+        }
+        ByteBuffer byteBuffer = con.getMyBufferPool().allocateByteBuffer();
+        ProtocolUtil.buildHeader(byteBuffer, 0, (byte) STORAGE_PROTO_CMD_RESP, result);
+        con.write(byteBuffer);
+        storage_log_access_log(con, ACCESS_LOG_ACTION_SET_METADATA, result);
+        StorageDio.nioNotify(con);
         return 0;
     }
 
@@ -271,8 +272,9 @@ public class StorageService {
 
     }
 
-    public static void STORAGE_PROTO_CMD_GET_METADATA(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
-
+    public static void STORAGE_PROTO_CMD_GET_METADATA(StorageClientInfo taskInfo, ByteBufferArray byteBufferArray) {
+        String filename = null;
+        STORAGE_ACCESS_STRCPY_FNAME2LOG(filename, taskInfo);
     }
 
     public static void STORAGE_PROTO_CMD_TRUNCATE_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
@@ -591,7 +593,7 @@ public class StorageService {
                         }
                         StorageGlobal.g_dist_path_index_low = 0;
                     }
-                    ++StorageGlobal.g_stat_change_count;
+                    StorageGlobal.g_stat_change_count.increment();
                 } finally {
                     lock.unlock();
                 }
