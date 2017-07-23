@@ -29,10 +29,17 @@ import static io.mybear.storage.trunkMgr.TrunkShared.FDFS_TRUNK_FILE_TYPE_REGULA
  */
 public class StorageDio {
     public static final int _FILE_TYPE_APPENDER = 1;
-    public static final int FILE_TYPE_TRUNK = 2; //if trunk file, since V3.0
+    public static final int _FILE_TYPE_TRUNK = 2; //if trunk file, since V3.0
     public static final int _FILE_TYPE_SLAVE = 4;
     public static final int _FILE_TYPE_REGULAR = 8;
     public static final int _FILE_TYPE_LINK = 16;
+
+    public static final char FDFS_STORAGE_FILE_OP_READ = 'R';
+    public static final char FDFS_STORAGE_FILE_OP_WRITE = 'W';
+    public static final char FDFS_STORAGE_FILE_OP_APPEND = 'A';
+    public static final char FDFS_STORAGE_FILE_OP_DELETE = 'D';
+    public static final char FDFS_STORAGE_FILE_OP_DISCARD = 'd';
+
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageDio.class);
     public static Object g_dio_thread_lock = new Object();
@@ -275,7 +282,7 @@ public class StorageDio {
      *
      * @param task
      */
-    public int dio_delete_normal_file(StorageClientInfo task) {
+    public static int dio_delete_normal_file(StorageClientInfo task) {
         StorageFileContext fileContext = task.fileContext;
         int result = 0;
         if (!new File(fileContext.filename).delete()) {
@@ -292,12 +299,10 @@ public class StorageDio {
      * @param pTask
      * @return
      */
-    public int dio_delete_trunk_file(StorageClientInfo pTask) {
+    public static int dio_delete_trunk_file(StorageClientInfo pTask) {
         StorageFileContext fileContext = pTask.fileContext;
         int result = 0;
-        if (TrunkMem.trunkFileDelete(fileContext.filename, ((StorageUploadInfo) fileContext.extra_info).getTrunkInfo()) != 0)
-            ;
-        {
+        if (TrunkMem.trunkFileDelete(fileContext.filename, ((StorageUploadInfo) fileContext.extra_info).getTrunkInfo()) != 0) {
             fileContext.log_callback.accept(pTask);
             result = -1;
         }
@@ -401,6 +406,7 @@ public class StorageDio {
         }
         fileContext.fileChannel = null;
     }
+
     public void dio_trunk_write_finish_clean_up(StorageClientInfo pTask) {
         StorageFileContext fileContext = pTask.fileContext;
         if (fileContext.fileChannel != null && fileContext.fileChannel.isOpen()) {
@@ -418,7 +424,6 @@ public class StorageDio {
         }
         fileContext.fileChannel = null;
     }
-
 
 
 //
