@@ -2,11 +2,14 @@ package io.mybear.storage.parserHandler;
 
 import io.mybear.common.StorageFileContext;
 import io.mybear.storage.StorageDio;
+import io.mybear.storage.StorageGlobal;
 import io.mybear.storage.storageNio.StorageClientInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+
+import static io.mybear.tracker.SharedFunc.delete;
 
 /**
  * Created by jamie on 2017/7/12.
@@ -42,7 +45,8 @@ public class DeleteFileParserHandler implements ParserHandler<StorageClientInfo,
         nioData.get(bytes);
         String s = new String(bytes);
         con.fileContext.filename += s;
-        System.out.println(con.fileContext.filename);
+        System.out.println( StorageGlobal.BASE_PATH + "/" + con.fileContext.filename);
+        delete(StorageGlobal.BASE_PATH + "/" + con.fileContext.filename);
         StorageDio.queuePush(con);
     }
 
