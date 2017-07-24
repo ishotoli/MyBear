@@ -211,3 +211,68 @@ body_len = 16 + 16 + 6 +  master_filenameBytes.length + file_size
 | 0-7   | pkg_len                       |
 | 8     | STORAGE_PROTO_CMD_RESP        |
 | 9     | 0                             |
+
+#### FastDFS客户端对Tracker服务的请求
+
+```java
+FDFS_PROTO_CMD_QUIT = 82;
+//pkg_len=0,socket关闭
+TRACKER_PROTO_CMD_SERVER_LIST_GROUP = 91;
+//pkg_len=0,
+//返回TRACKER_PROTO_CMD_RESP+StructGroupStat[]
+TRACKER_PROTO_CMD_SERVER_LIST_STORAGE = 92;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + ipAddrLen,
+//返回TRACKER_PROTO_CMD_RESP+StructGroupStat[]
+TRACKER_PROTO_CMD_SERVER_DELETE_STORAGE = 93;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + ipAddrLen
+//返回TRACKER_PROTO_CMD_RESP
+TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE = 101;
+//pkg_len=0,
+//返回TRACKER_PROTO_CMD_RESP+ip_addr+port+store_path
+TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE = 102;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + bFileName.length
+//返回TRACKER_PROTO_CMD_RESP+ip_addr+port+ServerInfo[]
+TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE = 103;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + bFileName.length
+//返回TRACKER_PROTO_CMD_RESP+ip_addr+port+ServerInfo[]
+TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE = 104;
+//pkg_len=pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN;
+//返回TRACKER_PROTO_CMD_RESP+ip_addr+port+store_path
+TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL = 105;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + bFileName.length
+//返回TRACKER_PROTO_CMD_RESP+ip_addr+port+store_path+ServerInfo[]
+TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ALL = 106;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + bFileName.length
+//返回TRACKER_PROTO_CMD_RESP+
+//留空ProtoCommon.FDFS_GROUP_NAME_MAX_LEN的长度+
+//StorageServer[]+store_path
+TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ALL = 107;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + bFileName.length
+//返回TRACKER_PROTO_CMD_RESP+
+//留空ProtoCommon.FDFS_GROUP_NAME_MAX_LEN的长度+
+//StorageServer[]+store_path
+```
+
+#### FastDFS客户端对Storage服务的请求
+
+```Java
+public static final byte STORAGE_PROTO_CMD_UPLOAD_FILE = 11;
+public static final byte STORAGE_PROTO_CMD_DELETE_FILE = 12;
+public static final byte STORAGE_PROTO_CMD_SET_METADATA = 13;
+public static final byte STORAGE_PROTO_CMD_DOWNLOAD_FILE = 14;
+public static final byte STORAGE_PROTO_CMD_GET_METADATA = 15;
+public static final byte STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE = 21;
+public static final byte STORAGE_PROTO_CMD_QUERY_FILE_INFO = 22;
+//pkg_len=ProtoCommon.FDFS_GROUP_NAME_MAX_LEN + bFileName.length
+//返回的body:file_size:long+create_timestamp:long+crc32:long+source_ip_addr:15byte
+public static final byte STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE = 23;  //create appender file
+//返回STORAGE_PROTO_CMD_RESP
+public static final byte STORAGE_PROTO_CMD_APPEND_FILE = 24;  //append file
+//返回STORAGE_PROTO_CMD_RESP
+public static final byte STORAGE_PROTO_CMD_MODIFY_FILE = 34;  //modify appender file
+//pkg_len=appenderFilenameLength:8byte+offset:8byte+fileSize:8byte+可变长度文件名+文件数据
+//返回STORAGE_PROTO_CMD_RESP
+public static final byte STORAGE_PROTO_CMD_TRUNCATE_FILE = 36;  //truncate appender file
+//pkg_len=filenameLength:8byte+truncatedFileSize:8byte+文件名数据
+//返回STORAGE_PROTO_CMD_RESP
+```
