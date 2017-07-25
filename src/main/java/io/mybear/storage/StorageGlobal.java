@@ -34,7 +34,7 @@ public class StorageGlobal {
     /* subdirs under store path, g_subdir_count * g_subdir_count 2 level subdirs */
     public static int g_subdir_count_per_path;
     public static int G_SERVER_PORT = 23000;
-    public static int G_HTTP_PORT;  //http server port
+    public static int g_http_port = 80;
     public static int g_last_server_port;
     public static int g_last_http_port;  //last http server port
     public static String g_http_domain;  //http server domain name
@@ -100,6 +100,7 @@ public class StorageGlobal {
     public static char[] g_run_by_group;
     public static char[] g_run_by_user;
     public static String g_bind_addr;
+    public static int g_log_file_keep_days = 0;
     public static boolean g_client_bind_addr;
     public static boolean g_storage_ip_changed_auto_adjust;
     public static boolean g_thread_kill_done;

@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static io.mybear.common.utils.BasicTypeConversionUtil.int2buff;
 import static io.mybear.common.utils.BasicTypeConversionUtil.long2buff;
 import static io.mybear.storage.FdfsStoraged.g_current_time;
+import static io.mybear.storage.StorageGlobal.g_group_name;
 import static io.mybear.storage.StorageGlobal.g_storage_stat;
 import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
 import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_UPDATE_FILE;
@@ -391,9 +392,9 @@ public class StorageService {
         System.arraycopy(pTask.data, 0, p, 0, pTask.data.length);
         System.arraycopy(p, 0, group_name, 0, TrackerTypes.FDFS_GROUP_NAME_MAX_LEN);
         String groupName = new String(group_name);
-        if (!groupName.equals(FdfsGlobal.g_group_name)) {
+        if (!groupName.equals(g_group_name)) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                    String.format("client ip:%s, group_name: %s,not correct, should be: %s", pTask.getClientIp(), groupName, FdfsGlobal.g_group_name));
+                    String.format("client ip:%s, group_name: %s,not correct, should be: %s", pTask.getClientIp(), groupName, g_group_name));
             return;
         }
         filename = new char[p.length - TrackerTypes.FDFS_GROUP_NAME_MAX_LEN];
