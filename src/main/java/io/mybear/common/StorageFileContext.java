@@ -20,8 +20,8 @@ public class StorageFileContext implements Serializable{
 
     /* FDFS logic filename to log not including group name */
     //131
-    //public String fname2log;//char fname2log[128+sizeof(FDFS_STORAGE_META_FILE_EXT)];
-    public char[] fname2log = new char[131];
+    public String fname2log;//char fname2log[128+sizeof(FDFS_STORAGE_META_FILE_EXT)];
+    //    public char[] fname2log = new char[131];
     public byte op;            //w for writing, r for reading, d for deleting etc.
     public byte syncFlag;     //sync flag log to binlog
     public boolean calcCrc32;    //if calculate file content hash code

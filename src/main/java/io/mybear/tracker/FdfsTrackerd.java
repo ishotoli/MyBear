@@ -38,7 +38,7 @@ public class FdfsTrackerd {
         server.start();
 
         //
-        TrackerGlobal.gUpTime.setTime(System.currentTimeMillis());
+        // TrackerGlobal.gUpTime.setTime(System.currentTimeMillis());
 
         // server started
         logger.info(server.getName() + " is started and listening on " + server.getPort());

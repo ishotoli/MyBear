@@ -8,6 +8,7 @@ import io.mybear.common.utils.*;
 import io.mybear.storage.storageNio.ByteBufferArray;
 import io.mybear.storage.storageNio.FastTaskInfo;
 import io.mybear.storage.storageNio.StorageClientInfo;
+import io.mybear.storage.storageSync.StorageSync;
 import io.mybear.storage.trunkMgr.FDFSTrunkHeader;
 import io.mybear.storage.trunkMgr.TrunkShared;
 import io.mybear.tracker.SharedFunc;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -84,7 +86,7 @@ public class StorageService {
         StorageSetMetaInfo setmeta = (StorageSetMetaInfo) clientInfo.extraArg;
         List<String[]> list = MetadataUtil.splitMetadata(setmeta.metaBuff);
         StringBuilder stringBuilder = new StringBuilder();
-        fileContext.syncFlag = '0';
+        fileContext.syncFlag = '\0';
         StringBuilder metaBuff = setmeta.metaBuff;
         int metaBytes = setmeta.meta_bytes;
         int result = 0;
@@ -97,7 +99,7 @@ public class StorageService {
                             result = 0;
                             break;
                         }
-                        fileContext.syncFlag = STORAGE_OP_TYPE_SOURCE_DELETE_FILE;
+                        fileContext.syncFlag = StorageSync.STORAGE_OP_TYPE_SOURCE_DELETE_FILE;
                         if (!SharedFunc.delete(fileContext.filename)) {
                             LOGGER.error("client ip: %s, delete file %s fail", clientInfo.getChannel().getRemoteAddress(), fileContext.filename);
                             result = -1;
@@ -231,12 +233,20 @@ public class StorageService {
         return storage_set_metadata_done_callback(clientInfo, result);
     }
 
+    static void STORAGE_ACCESS_STRCPY_FNAME2LOG(String filename, StorageClientInfo pClientInfo) {
+
+    }
+
+    static void storage_log_access_log(StorageClientInfo clientInfo, String action, int status) {
+
+    }
+
     static int storage_set_metadata_done_callback(StorageClientInfo con, int error) {
 //        StorageFileContext pFileContext = con.fileContext;
 //        int result = 0;
 //        if (error == 0) {
 //            if (pFileContext.syncFlag  != '0') {
-//                result = storage_binlog_write(pFileContext -> timestamp2log, 
+//                result = storage_binlog_write(pFileContext -> timestamp2log,
 //                        pFileContext -> sync_flag, pFileContext -> fname2log);
 //            } else {
 //                result = err_no;
@@ -248,9 +258,9 @@ public class StorageService {
 //        if (result != 0) {
 //            g_storage_stat.total_set_meta_count.increment();
 //        } else {
-//            CHECK_AND_WRITE_TO_STAT_FILE3( 
-//                    g_storage_stat.total_set_meta_count, 
-//                    g_storage_stat.success_set_meta_count, 
+//            CHECK_AND_WRITE_TO_STAT_FILE3(
+//                    g_storage_stat.total_set_meta_count,
+//                    g_storage_stat.success_set_meta_count,
 //                    g_storage_stat.last_source_update)
 //        }
 //
@@ -260,7 +270,7 @@ public class StorageService {
 //        pHeader = (TrackerHeader *) pTask -> data;
 //        pHeader -> status = result;
 //        pHeader -> cmd = STORAGE_PROTO_CMD_RESP;
-//        long2buff(pClientInfo -> total_length - sizeof(TrackerHeader), 
+//        long2buff(pClientInfo -> total_length - sizeof(TrackerHeader),
 //                pHeader -> pkg_len);
 //
 //        STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_SET_METADATA, result);
@@ -273,8 +283,9 @@ public class StorageService {
 
     }
 
-    public static void STORAGE_PROTO_CMD_GET_METADATA(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
-
+    public static void STORAGE_PROTO_CMD_GET_METADATA(StorageClientInfo taskInfo, ByteBufferArray byteBufferArray) {
+        String filename = null;
+        STORAGE_ACCESS_STRCPY_FNAME2LOG(filename, taskInfo);
     }
 
     public static void STORAGE_PROTO_CMD_TRUNCATE_FILE(FastTaskInfo taskInfo, ByteBufferArray byteBufferArray) {
