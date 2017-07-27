@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import com.alibaba.fastjson.JSON;
+
 import io.mybear.common.Base64Context;
 import io.mybear.common.constants.CommonConstant;
 import org.slf4j.Logger;
@@ -46,15 +47,15 @@ public class Base64 {
         // build translate valueToChar table only once.
         // 0..25 -> 'A'..'Z'
         for (int i = 0; i <= 25; i++) {
-            base64Context.getValueToChar()[i] = (char) ('A' + i);
+            base64Context.getValueToChar()[i] = (char)('A' + i);
         }
         // 26..51 -> 'a'..'z'
         for (int i = 0; i <= 25; i++) {
-            base64Context.getValueToChar()[i + 26] = (char) ('a' + i);
+            base64Context.getValueToChar()[i + 26] = (char)('a' + i);
         }
         // 52..61 -> '0'..'9'
         for (int i = 0; i <= 9; i++) {
-            base64Context.getValueToChar()[i + 52] = (char) ('0' + i);
+            base64Context.getValueToChar()[i + 52] = (char)('0' + i);
         }
         base64Context.getValueToChar()[62] = chPlus;
         base64Context.getValueToChar()[63] = chSplash;
@@ -93,7 +94,7 @@ public class Base64 {
             if (nSrcLen <= 0) {
                 dest = new char[0];
                 destLen = 0;
-                return destLen;
+                return 0;
             }
             linePos = 0;
             lens[0] = (nSrcLen / 3) * 3;
@@ -101,7 +102,7 @@ public class Base64 {
             leftover = nSrcLen - lens[0];
             ppSrcs[0] = src;
             ppSrcs[1] = szPad;
-
+            System.out.println(src);
             szPad[0] = szPad[1] = szPad[2] = '\0';
             switch (leftover) {
                 case 0:
@@ -111,7 +112,7 @@ public class Base64 {
                 case 1:
                     loop = 2;
                     if (nSrcLen > src.length) {
-                        szPad[0] = (char) RandomUtil.randomNextInt();
+                        szPad[0] = (char)RandomUtil.randomNextInt();
                     } else {
                         szPad[0] = src[nSrcLen - 1];
                     }
@@ -119,8 +120,8 @@ public class Base64 {
                 case 2:
                     loop = 2;
                     if (nSrcLen > src.length) {
-                        szPad[0] = (char) RandomUtil.randomNextInt();
-                        szPad[1] = (char) RandomUtil.randomNextInt();
+                        szPad[0] = (char)RandomUtil.randomNextInt();
+                        szPad[1] = (char)RandomUtil.randomNextInt();
                     } else {
                         szPad[0] = src[nSrcLen - 2];
                         szPad[1] = src[nSrcLen - 1];
@@ -144,7 +145,7 @@ public class Base64 {
                     if (linePos > base64Context.getLineLength()) {
                         if (base64Context.getLineLength() != 0) {
                             System.arraycopy(base64Context.getLineSeparator(), 0, pDest, flag,
-                                    base64Context.getLineSepLen());
+                                base64Context.getLineSepLen());
                             flag += base64Context.getLineSepLen();
                         }
                         linePos = 4;
@@ -156,7 +157,7 @@ public class Base64 {
                         //这里扩容大一些
                         pRaw = Arrays.copyOf(pRaw, pRaw.length + 10);
                         for (int j = 0; j < 10; j++) {
-                            pRaw[temp + j] = (char) (RandomUtil.randomNextInt());
+                            pRaw[temp + j] = (char)(RandomUtil.randomNextInt());
                         }
                     }
                     combined = ((pRaw[i]) << 16) | ((pRaw[i + 1]) << 8) | pRaw[i + 2];
@@ -191,8 +192,8 @@ public class Base64 {
                 case 1:
                     // One leftover byte generates xx==
                     if (bPad) {
-                        pDest[pDest.length - 1] = (char) base64Context.getPadCh();
-                        pDest[pDest.length - 2] = (char) base64Context.getPadCh();
+                        pDest[destLen - 1] = (char)base64Context.getPadCh();
+                        pDest[destLen - 2] = (char)base64Context.getPadCh();
                     } else {
                         Arrays.fill(pDest, flag - 2, pDest.length, pDest[pDest.length - 1]);
                         destLen -= 2;
@@ -201,7 +202,7 @@ public class Base64 {
                 case 2:
                     // Two leftover bytes generates xxx=
                     if (bPad) {
-                        pDest[pDest.length - 1] = (char) base64Context.getPadCh();
+                        pDest[destLen - 1] = (char)base64Context.getPadCh();
                     } else {
                         Arrays.fill(pDest, flag - 1, pDest.length, pDest[pDest.length - 1]);
                         destLen -= 1;
@@ -212,7 +213,7 @@ public class Base64 {
             return destLen;
         } catch (Exception e) {
             log.error(CommonConstant.LOG_FORMAT, "base64EncodeEx", "base64Context:" +
-                    JSON.toJSONString(base64Context) + " src" + src + " nSrcLen " + nSrcLen + " bPad " + bPad, "e{}" + e);
+                JSON.toJSONString(base64Context) + " src" + src + " nSrcLen " + nSrcLen + " bPad " + bPad, "e{}" + e);
             return -1;
         }
     }
@@ -224,7 +225,6 @@ public class Base64 {
      * @param src
      * @param nSrcLen
      * @param dest
-     * @param dest_len
      * @return
      */
     public static char[] base64_decode_auto(Base64Context context, final char[] src,
@@ -246,7 +246,7 @@ public class Base64 {
             pBuff = new char[nNewLen];
         }
         System.arraycopy(src, 0, pBuff, 0, nSrcLen);
-        Arrays.fill(pBuff, nSrcLen, nSrcLen + nPadLen, (char) context.getPadCh());
+        Arrays.fill(pBuff, nSrcLen, nSrcLen + nPadLen, (char)context.getPadCh());
         return base64_decode(context, pBuff, nNewLen, dest);
     }
 
@@ -312,9 +312,9 @@ public class Base64 {
                             // the four 6-bit values are in combined in big-endian order
                             // peel them off 8 bits at a time working lsb to msb
                             // to get our original 3 8-bit bytes back
-                            pDest[flag++] = (char) (combined >> 16);
-                            pDest[flag++] = (char) ((combined & 0x0000FF00) >> 8);
-                            pDest[flag++] = (char) (combined & 0x000000FF);
+                            pDest[flag++] = (char)(combined >> 16);
+                            pDest[flag++] = (char)((combined & 0x0000FF00) >> 8);
+                            pDest[flag++] = (char)(combined & 0x000000FF);
                             cycle = 0;
                             break;
                     }
@@ -324,7 +324,8 @@ public class Base64 {
         if (cycle != 0) {
             char[] tempChar = new char[flag];
             System.arraycopy(pDest, 0, tempChar, 0, tempChar.length);
-            log.info(CommonConstant.LOG_FORMAT, "base64_decode", "", String.format("Input to decode not an even multiple of 4 characters; pad with %c", context.getPadCh()));
+            log.info(CommonConstant.LOG_FORMAT, "base64_decode", "",
+                String.format("Input to decode not an even multiple of 4 characters; pad with %c", context.getPadCh()));
             return tempChar;
         }
         char[] tempChar = new char[flag - dummies];
