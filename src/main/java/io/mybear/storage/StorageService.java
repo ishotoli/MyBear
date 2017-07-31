@@ -85,7 +85,7 @@ public class StorageService {
 
     public static int storageProtoCmdSetMetadata(StorageClientInfo clientInfo) {
         StorageFileContext fileContext = clientInfo.fileContext;
-        StorageSetMetaInfo setmeta = (StorageSetMetaInfo)clientInfo.extraArg;
+        StorageSetMetaInfo setmeta = (StorageSetMetaInfo) clientInfo.extraArg;
         List<String[]> list = MetadataUtil.splitMetadata(setmeta.metaBuff);
         StringBuilder stringBuilder = new StringBuilder();
         fileContext.syncFlag = '\0';
@@ -417,36 +417,36 @@ public class StorageService {
         System.arraycopy(true_filename, 0, true_filename_bak, 0, true_filename_len);
         // 像这样的数据 CD/00/wKi0hVjqXGeAcyFfAAGSt-FxG-0872.jpg
         true_filename = true_filename_bak;
-        StorageUploadInfo upload = (StorageUploadInfo)pFileContext.extra_info;
+        StorageUploadInfo upload = (StorageUploadInfo) pFileContext.extra_info;
         if ((result = TrunkShared.trunk_file_lstat(store_path_index, true_filename, true_filename_len, stat_buf,
-            upload.getTrunkInfo(), trunkHeader)) != 0) {
+                upload.getTrunkInfo(), trunkHeader)) != 0) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                String.format("获取文件名错误! %s", new String(true_filename)));
+                    String.format("获取文件名错误! %s", new String(true_filename)));
             return;
         }
         if (StatUtil.S_ISREG(stat_buf.getSt_mode())) {
-            upload.setFileType((char)StorageDio._FILE_TYPE_REGULAR);
+            upload.setFileType((char) StorageDio._FILE_TYPE_REGULAR);
             pFileContext.deleteFlag |= STORAGE_DELETE_FLAG_FILE;
         } else if (StatUtil.S_ISLNK(stat_buf.getSt_mode())) {
-            upload.setFileType((char)StorageDio._FILE_TYPE_LINK);
+            upload.setFileType((char) StorageDio._FILE_TYPE_LINK);
             pFileContext.deleteFlag |= STORAGE_DELETE_FLAG_LINK;
         } else {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                String.format("client ip: %s, file %s is NOT a file", new String(pTask.getClientIp()),
-                    pFileContext.filename));
+                    String.format("client ip: %s, file %s is NOT a file", new String(pTask.getClientIp()),
+                            pFileContext.filename));
             return;
         }
         if (TrunkShared.IS_TRUNK_FILE_BY_ID(upload.getTrunkInfo())) {
-            upload.setFileType((char)(upload.getFileType() | StorageDio._FILE_TYPE_TRUNK));
+            upload.setFileType((char) (upload.getFileType() | StorageDio._FILE_TYPE_TRUNK));
             pClientInfo.dealFunc = StorageDio::dio_delete_trunk_file;
             char[] file_name = pFileContext.filename.toCharArray();
             file_name = TrunkShared.trunk_get_full_filename(upload.getTrunkInfo(), file_name,
-                pFileContext.filename.length());
+                    pFileContext.filename.length());
             pFileContext.filename = new String(file_name);
         } else {
             pClientInfo.dealFunc = StorageDio::dio_delete_normal_file;
             pFileContext.filename = String.format("%s/data/%s",
-                TrunkShared.getFdfsStorePaths().getPaths()[store_path_index], true_filename);
+                    TrunkShared.getFdfsStorePaths().getPaths()[store_path_index], true_filename);
         }
         if ((upload.getFileType() == _FILE_TYPE_LINK) && storage_is_slave_file(filename, filename_len)) {
             char[] full_filename = new char[CommonDefine.MAX_PATH_SIZE + 128];
@@ -458,7 +458,7 @@ public class StorageService {
             int src_store_path_index;
             int i;
             String fullFileName = String.format("%s/data/%s", TrunkShared.fdfsStorePaths.getPaths()[store_path_index],
-                new String(true_filename));
+                    new String(true_filename));
             full_filename = fullFileName.toCharArray();
             do {
                 File file = new File(fullFileName);
@@ -480,29 +480,29 @@ public class StorageService {
                 } catch (IOException e) {
                     e.printStackTrace();
                     log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                        String.format("client ip:%s, unlink file %s fail, errno: %d, error info: %s",
-                            new String(pTask.getClientIp()),
-                            fullFileName, result, e.getMessage()));
+                            String.format("client ip:%s, unlink file %s fail, errno: %d, error info: %s",
+                                    new String(pTask.getClientIp()),
+                                    fullFileName, result, e.getMessage()));
                     return;
                 }
                 base_path_len = TrunkShared.getFdfsStorePaths().getPaths()[store_path_index].length();
                 if (src_filename_len > base_path_len && new String(src_filename, 0, base_path_len).equals(
-                    TrunkShared.getFdfsStorePaths().getPaths()[store_path_index])) {
+                        TrunkShared.getFdfsStorePaths().getPaths()[store_path_index])) {
                     src_store_path_index = store_path_index;
                 } else {
                     src_store_path_index = -1;
                     for (i = 0; i < TrunkShared.getFdfsStorePaths().getCount(); i++) {
                         base_path_len = TrunkShared.getFdfsStorePaths().getPaths()[i].length();
                         if (src_filename_len > base_path_len && new String(src_filename, 0, base_path_len).equals(
-                            TrunkShared.getFdfsStorePaths().getPaths()[store_path_index])) {
+                                TrunkShared.getFdfsStorePaths().getPaths()[store_path_index])) {
                             src_store_path_index = i;
                             break;
                         }
                     }
                     if (src_store_path_index < 0) {
                         log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                            String.format("client ip:%s, can't get store base path of file %s",
-                                new String(pTask.getClientIp()), new String(src_filename)));
+                                String.format("client ip:%s, can't get store base path of file %s",
+                                        new String(pTask.getClientIp()), new String(src_filename)));
                         break;
                     }
                 }
@@ -510,8 +510,8 @@ public class StorageService {
                 src_true_filename = new char[src_filename.length - base_path_len - 5];
                 System.arraycopy(src_filename, base_path_len + 5, src_true_filename, 0, src_true_filename.length);
                 String fileNameBak = String.format("%c" + TrackerTypes.FDFS_STORAGE_DATA_DIR_FORMAT + "/%s",
-                    TrackerTypes.FDFS_STORAGE_STORE_PATH_PREFIX_CHAR, src_store_path_index,
-                    new String(src_true_filename));
+                        TrackerTypes.FDFS_STORAGE_STORE_PATH_PREFIX_CHAR, src_store_path_index,
+                        new String(src_true_filename));
                 if (fileNameBak.length() > src_fname2log.length) {
                     System.arraycopy(fileNameBak.toCharArray(), 0, src_fname2log, 0, src_fname2log.length);
                 } else {
@@ -532,13 +532,13 @@ public class StorageService {
         StorageClientInfo pClientInfo;
         StorageFileContext pFileContext;
         int result;
-        pClientInfo = (StorageClientInfo)pTask.arg;
+        pClientInfo = (StorageClientInfo) pTask.arg;
         pFileContext = pClientInfo.fileContext;
         //pFileContext.;
         pFileContext.op = StorageDio.FDFS_STORAGE_FILE_OP_DELETE;
         //pFileContext.dio_thread_index = storage_dio_get_thread_index(pTask, store_path_index, pFileContext.op);
-        pFileContext.log_callback = log_callback;
-        pFileContext.done_callback = done_callback;
+//        pFileContext.log_callback = log_callback;
+//        pFileContext.done_callback = done_callback;
         //        if ((result = storage_dio_queue_push(pTask)) != 0) {
         //            return result;
         //        }
@@ -561,18 +561,18 @@ public class StorageService {
         int file_size;
         if (filename_len < TrackerTypes.FDFS_NORMAL_LOGIC_FILENAME_LENGTH) {
             log.error(CommonConstant.LOG_FORMAT, "storage_is_slave_file", "",
-                String.format("filename is too short, length: %d < %d",
-                    filename_len, TrackerTypes.FDFS_LOGIC_FILE_PATH_LEN + TrackerTypes.FDFS_FILENAME_BASE64_LENGTH
-                        + FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1));
+                    String.format("filename is too short, length: %d < %d",
+                            filename_len, TrackerTypes.FDFS_LOGIC_FILE_PATH_LEN + TrackerTypes.FDFS_FILENAME_BASE64_LENGTH
+                                    + FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN + 1));
             return false;
         }
-        Arrays.fill(buff, (char)0);
+        Arrays.fill(buff, (char) 0);
         char[] file_name_bak = new char[remote_filename.length - TrackerTypes.FDFS_LOGIC_FILE_PATH_LEN];
         System.arraycopy(remote_filename, TrackerTypes.FDFS_LOGIC_FILE_PATH_LEN, file_name_bak, 0,
-            file_name_bak.length);
+                file_name_bak.length);
         buff = Base64.base64_decode_auto(TrunkShared.base64Context, file_name_bak,
-            TrackerTypes.FDFS_FILENAME_BASE64_LENGTH, buff);
-        file_size = (int)BasicTypeConversionUtil.buff2long(buff, SizeOfConstant.SIZE_OF_INT * 2);
+                TrackerTypes.FDFS_FILENAME_BASE64_LENGTH, buff);
+        file_size = (int) BasicTypeConversionUtil.buff2long(buff, SizeOfConstant.SIZE_OF_INT * 2);
         if (TrackerTypes.IS_TRUNK_FILE(file_size)) {
             return filename_len > TrackerTypes.FDFS_TRUNK_LOGIC_FILENAME_LENGTH;
         }
