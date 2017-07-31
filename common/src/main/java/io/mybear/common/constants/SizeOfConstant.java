@@ -1,6 +1,5 @@
 package io.mybear.common.constants;
 
-
 /**
  * Created by wb-zhangkenan on 2017/7/10.
  *

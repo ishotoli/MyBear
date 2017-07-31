@@ -1,14 +1,17 @@
 package io.mybear.common.utils;
 
+import io.mybear.common.Stat;
 import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.trunk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
 import java.util.Arrays;
-
 import static io.mybear.common.constants.CommonConstant.*;
 import static io.mybear.common.constants.config.FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN;
 import static io.mybear.common.trunk.TrunkShared.*;
@@ -94,20 +97,20 @@ public class FilenameUtil {
         return store_path_index;
     }
 
-    public static File trunk_file_lstat(int store_path_index, char[] true_filename, int filename_len, File pStat,
-                                        FdfsTrunkFullInfo pTrunkInfo, FDFSTrunkHeader pTrunkHeader) {
+    public static int trunk_file_lstat(int store_path_index, char[] true_filename, int filename_len, Stat pStat,
+                                       FdfsTrunkFullInfo pTrunkInfo, FDFSTrunkHeader pTrunkHeader) {
         return trunk_file_do_lstat_func(store_path_index, true_filename, filename_len,
                 FDFS_STAT_FUNC_LSTAT, pStat, pTrunkInfo, pTrunkHeader, null);
     }
 
-    private static File trunk_file_do_lstat_func(int store_path_index, char[] true_filename, int filename_len, int stat_func,
-                                                 File pStat, FdfsTrunkFullInfo pTrunkInfo, FDFSTrunkHeader pTrunkHeader, Integer pfd) {
+    private static int trunk_file_do_lstat_func(int store_path_index, char[] true_filename, int filename_len, int stat_func,
+                                                Stat pStat, FdfsTrunkFullInfo pTrunkInfo, FDFSTrunkHeader pTrunkHeader, Integer pfd) {
         return trunk_file_do_lstat_func_ex(TrunkShared.getFdfsStorePaths(), store_path_index, true_filename, filename_len, stat_func, pStat, pTrunkInfo, pTrunkHeader, pfd);
     }
 
-    private static File trunk_file_do_lstat_func_ex(FdfsStorePaths pStorePaths, int store_path_index, char[] true_filename,
-                                                    int filename_len, int stat_func, File pStat, FdfsTrunkFullInfo pTrunkInfo,
-                                                    FDFSTrunkHeader pTrunkHeader, Integer pfd) {
+    private static int trunk_file_do_lstat_func_ex(FdfsStorePaths pStorePaths, int store_path_index, char[] true_filename,
+                                                   int filename_len, int stat_func, Stat pStat, FdfsTrunkFullInfo pTrunkInfo,
+                                                   FDFSTrunkHeader pTrunkHeader, Integer pfd) {
 
         char[] full_filename = new char[MAX_PATH_SIZE];
         char[] buff = new char[128];
@@ -118,6 +121,7 @@ public class FilenameUtil {
         int read_bytes;
         int result;
         int flag = 0;
+        File tmpFile = null;
         pTrunkInfo.getFile().setId(0);
         //not trunk file
         String fileName = String.format("%s/data/%s", pStorePaths.getPaths()[store_path_index], new String(true_filename));
@@ -129,18 +133,36 @@ public class FilenameUtil {
                 flag = fileName.length();
                 System.arraycopy(fileName.toCharArray(), 0, full_filename, 0, fileName.length());
             }
+            tmpFile = new File(new String(full_filename, 0, flag));
             if (stat_func == FDFS_STAT_FUNC_STAT) {
-                pStat = new File(new String(full_filename, 0, flag));
+                //判断文件是不是
+                if (!tmpFile.isFile()) {
+                    log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("这不是一个文件 !文件名%s", new String(full_filename)));
+                    return -1;
+                }
             } else {
                 // @TODO lstat 和 stat是否需要进行区分？？？
-                pStat = new File(new String(full_filename, 0, flag));
+                tmpFile = new File(new String(full_filename, 0, flag));
+                if (!Files.isSymbolicLink(tmpFile.toPath())) {
+                    log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("这不是一个软连接 !文件名%s", new String(full_filename)));
+                    return -1;
+                }
             }
         }
         Arrays.fill(buff, (char) 0);
         char[] src = new char[true_filename.length - FDFS_TRUE_FILE_PATH_LEN];
         System.arraycopy(true_filename, FDFS_TRUE_FILE_PATH_LEN, src, 0, true_filename.length - FDFS_TRUE_FILE_PATH_LEN);
-        buff = Base64.base64_decode_auto(TrunkShared.base64Context, src, FDFS_FILENAME_BASE64_LENGTH, buff);
-        buff_len = buff.length;
+        char[] buff_bak = Base64.base64_decode_auto(TrunkShared.base64Context, src, FDFS_FILENAME_BASE64_LENGTH, buff);
+        buff_len = buff_bak.length;
+        //文件的读写标记
+        int flag_buff = 0;
+        if (buff_len > 128) {
+            flag_buff = 128;
+            System.arraycopy(buff, 0, buff_bak, 0, buff.length);
+        } else {
+            flag_buff = buff_len;
+            System.arraycopy(buff, 0, buff_bak, 0, buff_len);
+        }
         file_size = (int) buff2long(buff, SizeOfConstant.SIZE_OF_INT * 2);
         //slave file
         if (!IS_TRUNK_FILE(file_size)) {
@@ -151,11 +173,20 @@ public class FilenameUtil {
                 flag = fileName.length();
                 System.arraycopy(fileName.toCharArray(), 0, full_filename, 0, fileName.length());
             }
+            tmpFile = new File(new String(full_filename, 0, flag));
             if (stat_func == FDFS_STAT_FUNC_STAT) {
-                pStat = new File(new String(full_filename, 0, flag));
+                //判断文件是不是
+                if (!tmpFile.isFile()) {
+                    log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("这不是一个文件 !文件名%s", new String(full_filename)));
+                    return -1;
+                }
             } else {
                 // @TODO lstat 和 stat是否需要进行区分？？？
-                pStat = new File(new String(full_filename, 0, flag));
+                tmpFile = new File(new String(full_filename, 0, flag));
+                if (!Files.isSymbolicLink(tmpFile.toPath())) {
+                    log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("这不是一个软连接 !文件名%s", new String(full_filename)));
+                    return -1;
+                }
             }
         }
         src = new char[true_filename.length - FDFS_TRUE_FILE_PATH_LEN - FDFS_FILENAME_BASE64_LENGTH];
@@ -169,13 +200,13 @@ public class FilenameUtil {
         int srcLength = true_filename.length - (filename_len - (FDFS_FILE_EXT_NAME_MAX_LEN + 1));
         int destLength = FDFS_FILE_EXT_NAME_MAX_LEN + 2;
         if (srcLength > destLength) {
-            char[] tmpFile = new char[destLength];
-            System.arraycopy(true_filename, filename_len - (FDFS_FILE_EXT_NAME_MAX_LEN + 1), tmpFile, 0, destLength);
-            pTrunkHeader.formattedExtName = tmpFile;
+            char[] tmpFileChar = new char[destLength];
+            System.arraycopy(true_filename, filename_len - (FDFS_FILE_EXT_NAME_MAX_LEN + 1), tmpFileChar, 0, destLength);
+            pTrunkHeader.formattedExtName = tmpFileChar;
         } else {
-            char[] tmpFile = new char[srcLength];
-            System.arraycopy(true_filename, filename_len - (FDFS_FILE_EXT_NAME_MAX_LEN + 1), tmpFile, 0, srcLength);
-            pTrunkHeader.formattedExtName = tmpFile;
+            char[] tmpFileChar = new char[srcLength];
+            System.arraycopy(true_filename, filename_len - (FDFS_FILE_EXT_NAME_MAX_LEN + 1), tmpFileChar, 0, srcLength);
+            pTrunkHeader.formattedExtName = tmpFileChar;
         }
         pTrunkHeader.allocSize = pTrunkInfo.getFile().getSize();
         pTrunkInfo.getPath().setStorePathIndex(store_path_index);
@@ -183,9 +214,82 @@ public class FilenameUtil {
         pTrunkInfo.getPath().setSubPathLow(Integer.parseInt(new String(true_filename, 3, 2), 16));
         //文件全名
         full_filename = trunk_get_full_filename_ex(pStorePaths, pTrunkInfo, full_filename, full_filename.length);
-        return null;
+        String trunkFileName = new String(full_filename);
+        RandomAccessFile randomAccessFile = null;
+        try {
+            //只读模式打开文件
+            randomAccessFile = new RandomAccessFile(trunkFileName, "r");
+            if (!randomAccessFile.getFD().valid()) {
+                return -1;
+            }
+            randomAccessFile.seek(pTrunkInfo.getFile().getOffset());
+            byte[] buff_byte = new byte[128];
+            if (randomAccessFile.length() < FDFS_TRUNK_FILE_HEADER_SIZE) {
+                log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("读取文件长度出现异常，文件长度小于 %d !文件名%s", FDFS_TRUNK_FILE_HEADER_SIZE, trunkFileName));
+                return -1;
+            }
+            randomAccessFile.read(buff_byte, 0, FDFS_TRUNK_FILE_HEADER_SIZE);
+            pTrunkHeader.fileType = buff_byte[FDFS_TRUNK_FILE_FILE_TYPE_OFFSET];
+            if (pTrunkHeader.fileType == FDFS_TRUNK_FILE_TYPE_REGULAR) {
+                pStat.setSt_mode(StatUtil.S_IFREG);
+            } else if (pTrunkHeader.fileType == FDFS_TRUNK_FILE_TYPE_LINK) {
+                pStat.setSt_mode(StatUtil.S_IFLNK);
+            } else {
+                log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("Invalid file type: %d", pTrunkHeader.fileType));
+                return -1;
+            }
+            //包装trunkHeader
+            trunk_pack_header(pTrunkHeader, pack_buff);
+            //
+            char[] compareChar = new char[pack_buff.length];
+            System.arraycopy(buff, 0, compareChar, 0, compareChar.length);
+            if (!Arrays.equals(pack_buff, buff)) {
+                return -1;
+            }
+            pStat.setSt_size(pTrunkHeader.fileSize);
+            pStat.setSt_mtime(pTrunkHeader.mtime);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("只读模式创建文件出现异常!文件名%s", trunkFileName));
+            return -1;
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.error(CommonConstant.LOG_FORMAT, "trunk_file_do_lstat_func_ex", "", String.format("读取文件跳过相应的字节数出现异常 文件名 %s seek %d!", "只读模式创建文件出现异常!文件名%s", trunkFileName, pTrunkInfo.getFile().getOffset()));
+            return -1;
+        } finally {
+            if (randomAccessFile != null) {
+                try {
+                    randomAccessFile.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return 0;
     }
 
+    private static void trunk_pack_header(FDFSTrunkHeader pTrunkHeader, char[] buff) {
+        buff[FDFS_TRUNK_FILE_FILE_TYPE_OFFSET] = (char) pTrunkHeader.fileType;
+        BasicTypeConversionUtil.int2buff(pTrunkHeader.allocSize, buff, FDFS_TRUNK_FILE_ALLOC_SIZE_OFFSET);
+        BasicTypeConversionUtil.int2buff(pTrunkHeader.fileSize, buff, FDFS_TRUNK_FILE_FILE_SIZE_OFFSET);
+        BasicTypeConversionUtil.int2buff(pTrunkHeader.crc32, buff, FDFS_TRUNK_FILE_FILE_CRC32_OFFSET);
+        BasicTypeConversionUtil.int2buff(pTrunkHeader.mtime, buff, FDFS_TRUNK_FILE_FILE_MTIME_OFFSET);
+        System.arraycopy(pTrunkHeader.formattedExtName, 0, buff, FDFS_TRUNK_FILE_FILE_EXT_NAME_OFFSET, FDFS_FILE_EXT_NAME_MAX_LEN + 1);
+    }
+
+    public static char[] trunk_get_full_filename(FdfsTrunkFullInfo pTrunkInfo,
+                                                 char[] full_filename, int length) {
+        return trunk_get_full_filename_ex(TrunkShared.fdfsStorePaths,pTrunkInfo,full_filename,length);
+    }
+
+    /**
+     * 返回full_fileName
+     * @param pStorePaths
+     * @param pTrunkInfo
+     * @param full_filename
+     * @param length
+     * @return
+     */
     public static char[] trunk_get_full_filename_ex(FdfsStorePaths pStorePaths, FdfsTrunkFullInfo pTrunkInfo,
                                                     char[] full_filename, int length) {
 
@@ -227,5 +331,10 @@ public class FilenameUtil {
         char[] true_filename = new char[128];
         SPLIT_FILENAME_BODY(logic_filename, filename_len, true_filename, true);
         System.out.println(true_filename);
+    }
+
+    public static boolean IS_TRUNK_FILE_BY_ID(FdfsTrunkFullInfo trunkInfo) {
+
+        return trunkInfo.getFile().getId() > 0;
     }
 }
