@@ -8,10 +8,10 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 
 /**
- * Created by jamie on 2017/7/12.
+ * Created by jamie on 2017/7/25.
  */
-public class SetMetaDataParserHandler implements ParserHandler<StorageClientInfo, ByteBuffer> {
-    public static final int SIZE = 8 + 8 + 1 + 16;
+public class GetMetaDataParserHandler implements ParserHandler<StorageClientInfo, ByteBuffer> {
+    public static final int SIZE = 33;
     private static final Logger LOGGER = LoggerFactory.getLogger(SetMetaDataParserHandler.class);
 
     @Override
@@ -20,7 +20,7 @@ public class SetMetaDataParserHandler implements ParserHandler<StorageClientInfo
         long filenameLen = nioData.getLong();
         long meta_buff_length = nioData.getLong();
         byte flag = nioData.get();
-        byte[] group_name = new byte[16];
+        byte[] group_name = new byte[nioData.position() - 1];
         nioData.get(group_name);
         nioData.position(0);
         System.out.println("groupName:" + new String(group_name));

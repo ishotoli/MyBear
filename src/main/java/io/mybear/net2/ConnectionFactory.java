@@ -1,6 +1,5 @@
 package io.mybear.net2;
 
-import io.mybear.common.FastTaskInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +45,7 @@ public abstract class ConnectionFactory {
 }
 
 @SuppressWarnings("rawtypes")
-class NIOHandlerWrap implements NIOHandler<FastTaskInfo> {
+class NIOHandlerWrap implements NIOHandler<Connection> {
     protected static final Logger LOGGER = LoggerFactory
             .getLogger(NIOHandlerWrap.class);
     private final NIOHandler handler;
@@ -58,7 +57,7 @@ class NIOHandlerWrap implements NIOHandler<FastTaskInfo> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onConnected(FastTaskInfo con) throws IOException {
+    public void onConnected(Connection con) throws IOException {
         con.setState(Connection.State.connecting);
         String info = con.getDirection() == Connection.Direction.in ? "remote peer connected to me "
                 + con
@@ -70,7 +69,7 @@ class NIOHandlerWrap implements NIOHandler<FastTaskInfo> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onConnectFailed(FastTaskInfo con, Throwable e) {
+    public void onConnectFailed(Connection con, Throwable e) {
         LOGGER.warn("connection failed: " + e + " con " + con);
         handler.onConnectFailed(con, e);
 
@@ -78,23 +77,23 @@ class NIOHandlerWrap implements NIOHandler<FastTaskInfo> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void handle(FastTaskInfo con, ByteBuffer nioData) {
+    public void handle(Connection con, ByteBuffer nioData) {
         handler.handle(con, nioData);
     }
 
     @Override
-    public void handleEnd(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleEnd(Connection con, ByteBuffer nioData) {
         handler.handleEnd(con, nioData);
     }
 
     @Override
-    public void handleMetaData(FastTaskInfo con, ByteBuffer nioData) {
+    public void handleMetaData(Connection con, ByteBuffer nioData) {
         handler.handleMetaData(con, nioData);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onClosed(FastTaskInfo con, String reason) {
+    public void onClosed(Connection con, String reason) {
         handler.onClosed(con, reason);
 
     }
