@@ -58,7 +58,6 @@ public class StorageService {
     public static final int STORAGE_DELETE_FLAG_NONE = 0;
     public static final int STORAGE_DELETE_FLAG_FILE = 1;
     public static final int STORAGE_DELETE_FLAG_LINK = 2;
-    private static final Logger LOGGER = LoggerFactory.getLogger(StorageService.class);
     private final static Logger log = LoggerFactory.getLogger(StorageService.class);
     private static final ReentrantLock lock = new ReentrantLock();
     private static final int STORAGE_STATUE_DEAL_FILE = 123456;
@@ -99,7 +98,7 @@ public class StorageService {
                         }
                         fileContext.syncFlag = STORAGE_OP_TYPE_SOURCE_DELETE_FILE;
                         if (!SharedFunc.delete(fileContext.filename)) {
-                            LOGGER.error("client ip: %s, delete file %s fail", clientInfo.getChannel().getRemoteAddress(), fileContext.filename);
+                            log.error("client ip: %s, delete file %s fail", clientInfo.getChannel().getRemoteAddress(), fileContext.filename);
                             result = -1;
                         } else {
                             result = 0;
@@ -172,7 +171,7 @@ public class StorageService {
                     e.printStackTrace();
                 }
                 if (all_meta_list == null) {
-                    LOGGER.error(String.format("malloc %d bytes fail.", size));
+                    log.error(String.format("malloc %d bytes fail.", size));
                     result = -1;
                     break;
                 }
@@ -507,14 +506,10 @@ public class StorageService {
             } while (false);
         }
         pFileContext.fname2log = filename;
-        //return storage_do_delete_file(pTask, storage_delete_file_log_error, storage_delete_fdfs_file_done_callback, store_path_index);
-        return;
+        storage_do_delete_file(pTask, store_path_index);
     }
 
-    private static int storage_do_delete_file(FastTaskInfo pTask,
-                                              DeleteFileLogCallback log_callback,
-                                              FileDealDoneCallback done_callback,
-                                              final int store_path_index) {
+    private static int storage_do_delete_file(FastTaskInfo pTask, final int store_path_index) {
         StorageClientInfo pClientInfo;
         StorageFileContext pFileContext;
         int result;
@@ -523,8 +518,14 @@ public class StorageService {
         //pFileContext.;
         pFileContext.op = StorageDio.FDFS_STORAGE_FILE_OP_DELETE;
         //pFileContext.dio_thread_index = storage_dio_get_thread_index(pTask, store_path_index, pFileContext.op);
-        pFileContext.log_callback = log_callback;
-        pFileContext.done_callback = done_callback;
+        pFileContext.log_callback = (logFile) -> {
+//            log.info(CommonConstant.LOG_FORMAT, "storage_do_delete_file", JSON.toJSONString(logFile),
+//                    String.format("client ip: %s, delete file %s fail ", new String(logFile.getClientIp()),
+//                            logFile.file_context.filename));
+        };
+        pFileContext.done_callback = (done) -> {
+
+        };
 //        if ((result = storage_dio_queue_push(pTask)) != 0) {
 //            return result;
 //        }
