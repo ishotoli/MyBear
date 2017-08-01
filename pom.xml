@@ -5,8 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.mycat</groupId>
-    <artifactId>MyBear</artifactId>
+    <artifactId>mybear-parent</artifactId>
+    <packaging>pom</packaging>
     <version>0.1-SNAPSHOT</version>
+    <modules>
+        <module>tracker</module>
+        <module>storage</module>
+        <module>common</module>
+        <module>tests</module>
+    </modules>
 
     <properties>
         <app.encoding>UTF-8</app.encoding>
@@ -54,14 +61,7 @@
             <artifactId>log4j-core</artifactId>
             <version>${log4j-core.version}</version>
         </dependency>
-        <!-- fastdfs-client -->
-        <dependency>
-            <groupId>org.csource</groupId>
-            <artifactId>fastdfs-client-java</artifactId>
-            <version>1.27-SNAPSHOT</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/fastdfs-client-java-1.27-SNAPSHOT.jar</systemPath>
-        </dependency>
+
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
@@ -82,21 +82,6 @@
         </dependency>
     </dependencies>
     <build>
-        <!-- finalName>${artifactId}-${version}-${buildNumber}</finalName -->
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <excludes>
-                </excludes>
-            </resource>
-        </resources>
-        <testResources>
-            <testResource>
-                <directory>src/test/resources</directory>
-                <excludes>
-                </excludes>
-            </testResource>
-        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -4,3 +4,6 @@ target
 target/*
 /MyBear.iml
 /.idea/
+src/test/java/io/mybear/storage/net2/
+storage/storage.iml
+tracker/tracker.iml
