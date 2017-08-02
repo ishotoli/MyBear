@@ -13,6 +13,7 @@
         <module>storage</module>
         <module>common</module>
         <module>tests</module>
+        <module>trunkMgr</module>
     </modules>
 
     <properties>

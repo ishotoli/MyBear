@@ -7,7 +7,7 @@ import io.mybear.common.constants.config.StorageGlobal;
 import io.mybear.common.trunk.FdfsStorePathInfo;
 import io.mybear.common.trunk.TrunkShared;
 import io.mybear.common.utils.SharedFunc;
-import io.mybear.storage.trunkMgr.TrunkMem;
+import io.mybear.trunkMgr.TrunkMem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

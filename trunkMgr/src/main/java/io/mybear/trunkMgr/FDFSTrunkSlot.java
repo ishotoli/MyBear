@@ -1,4 +1,3 @@
-package io.mybear.storage.trunkMgr;//package io.mybear.storage.trunkMgr;
 //
 //import io.mybear.common.FdfsTrunkFileInfo;
 //import io.mybear.common.FdfsTrunkFullInfo;

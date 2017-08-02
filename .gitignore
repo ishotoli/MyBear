@@ -12,12 +12,8 @@ tracker/mybear-tracker.iml
 common/mybear-common.iml
 tests/mybear-tests.iml
 MyBear.iml
+trunkMgr/trunkMgr.iml
 
 
 
 
-common/src/main/resources/
-common/src/test/
-storage/src/test/
-tests/src/main/
-tracker/src/test/

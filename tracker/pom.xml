@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>mybear-tracker</artifactId>
+    <packaging>pom</packaging>
     <dependencies>
         <dependency>
             <groupId>io.mycat</groupId>

@@ -32,7 +32,7 @@ import static io.mybear.common.constants.config.StorageGlobal.*;
 import static io.mybear.common.constants.config.StorageGlobal.DEFAULT_SYNC_STAT_FILE_INTERVAL;
 import static io.mybear.common.constants.config.StorageGlobal.g_log_file_keep_days;
 import static io.mybear.common.constants.config.StorageGlobal.g_use_access_log;
-import static io.mybear.storage.trunkMgr.TrunkSync.TRUNK_BINLOG_BUFFER_SIZE;
+import static io.mybear.trunkMgr.TrunkSync.TRUNK_BINLOG_BUFFER_SIZE;
 import static sun.net.NetworkClient.DEFAULT_CONNECT_TIMEOUT;
 
 /**

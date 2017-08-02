@@ -8,18 +8,15 @@
         <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>mybear-storage</artifactId>
-    <packaging>pom</packaging>
+
+    <artifactId>mybear-trunkmanager</artifactId>
     <dependencies>
         <dependency>
             <groupId>io.mycat</groupId>
             <artifactId>mybear-common</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>io.mycat</groupId>
-            <artifactId>mybear-trunkmanager</artifactId>
-            <version>0.1-SNAPSHOT</version>
-        </dependency>
     </dependencies>
+
+
 </project>

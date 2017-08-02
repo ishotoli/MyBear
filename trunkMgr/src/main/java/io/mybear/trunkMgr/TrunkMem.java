@@ -1,21 +1,17 @@
-package io.mybear.storage.trunkMgr;
+package io.mybear.trunkMgr;
 
-
+import io.mybear.common.constants.CommonConstant;
+import io.mybear.common.constants.ErrorNo;
 import io.mybear.common.tracker.FDFSStorageReservedSpace;
 import io.mybear.common.trunk.FdfsTrunkFileInfo;
 import io.mybear.common.trunk.FdfsTrunkFullInfo;
 import io.mybear.common.trunk.FdfsTrunkPathInfo;
+import io.mybear.common.trunk.TrunkShared;
 import org.omg.CORBA.Object;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-
-import static io.mybear.common.constants.CommonConstant.FDFS_DEF_STORAGE_RESERVED_MB;
-import static io.mybear.common.constants.CommonConstant.FDFS_STORE_PATH_ROUND_ROBIN;
-import static io.mybear.common.constants.ErrorNo.EEXIST;
-import static io.mybear.common.trunk.TrunkShared.FDFS_TRUNK_STATUS_FREE;
-import static io.mybear.common.trunk.TrunkShared.FDFS_TRUNK_STATUS_HOLD;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -31,9 +27,9 @@ public class TrunkMem {
     public static int g_slot_min_size;
     public static int g_trunk_file_size;
     public static int g_slot_max_size;
-    public static int g_store_path_mode = FDFS_STORE_PATH_ROUND_ROBIN;
+    public static int g_store_path_mode = CommonConstant.FDFS_STORE_PATH_ROUND_ROBIN;
     public static FDFSStorageReservedSpace g_storage_reserved_space = new FDFSStorageReservedSpace();
-    public static int g_avg_storage_reserved_mb = FDFS_DEF_STORAGE_RESERVED_MB;
+    public static int g_avg_storage_reserved_mb = CommonConstant.FDFS_DEF_STORAGE_RESERVED_MB;
     public static int g_store_path_index = 0;
     public static int g_current_trunk_file_id = 0;
     public static long[] g_trunk_create_file_time_base = {0, 0};
@@ -73,7 +69,7 @@ public class TrunkMem {
             Iterator<FdfsTrunkFullInfo> iterator = queue.iterator();
             while (iterator.hasNext()) {
                 FdfsTrunkFullInfo it = iterator.next();
-                if (it.getStatus() == FDFS_TRUNK_STATUS_FREE) {
+                if (it.getStatus() == TrunkShared.FDFS_TRUNK_STATUS_FREE) {
                     iterator.remove();
                     if (queue.size() == 0) {
                         TREE_INFO_BY_SIZES.remove(listEntry.getKey());//如果这个队列空了,就删了吧
@@ -91,7 +87,7 @@ public class TrunkMem {
         FdfsTrunkFullInfo old = node;
         insertTreeInfoBySizes(result);
         insertTreeInfoBySizes(old);
-        node.setStatus(FDFS_TRUNK_STATUS_HOLD);
+        node.setStatus(TrunkShared.FDFS_TRUNK_STATUS_HOLD);
         return node;
     }
 
@@ -115,7 +111,7 @@ public class TrunkMem {
         FdfsTrunkFileInfo file = new FdfsTrunkFileInfo();
         trunkFullInfo.setPath(path);
         trunkFullInfo.setFile(file);
-        trunkFullInfo.setStatus(FDFS_TRUNK_STATUS_FREE);
+        trunkFullInfo.setStatus(TrunkShared.FDFS_TRUNK_STATUS_FREE);
         trunkFullInfo.getFile().setSize(64 * 1024);
         trunkFullInfo.getFile().setOffset(0);
         //文件名
@@ -132,18 +128,18 @@ public class TrunkMem {
             queue.remove(pTrunkInfo);
             FreeBlockCheacker.freeBlockDelete(pTrunkInfo);
             return 0;
-        } else if (status == EEXIST) {
+        } else if (status == ErrorNo.EEXIST) {
             queue = TREE_INFO_BY_SIZES.get(pTrunkInfo.getFile().getSize());
             queue.remove(pTrunkInfo);
             FreeBlockCheacker.freeBlockDelete(pTrunkInfo);
             return 0;
         }
-        pTrunkInfo.setStatus(FDFS_TRUNK_STATUS_FREE);
+        pTrunkInfo.setStatus(TrunkShared.FDFS_TRUNK_STATUS_FREE);
         return 0;
     }
 
     public static int freeSpace(FdfsTrunkFullInfo trunkInfo, boolean bWriteBinLog) {
-        trunkInfo.setStatus(FDFS_TRUNK_STATUS_FREE);
+        trunkInfo.setStatus(TrunkShared.FDFS_TRUNK_STATUS_FREE);
         insertTreeInfoBySizes(trunkInfo);
         FreeBlockCheacker.freeBlockInsert(trunkInfo);
         return 0;

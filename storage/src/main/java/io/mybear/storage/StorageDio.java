@@ -6,7 +6,7 @@ import io.mybear.common.trunk.FdfsStorePaths;
 import io.mybear.common.trunk.TrunkShared;
 import io.mybear.storage.storageNio.Connection;
 import io.mybear.storage.storageNio.StorageClientInfo;
-import io.mybear.storage.trunkMgr.TrunkMem;
+import io.mybear.trunkMgr.TrunkMem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

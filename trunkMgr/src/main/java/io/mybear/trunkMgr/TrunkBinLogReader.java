@@ -1,4 +1,4 @@
-package io.mybear.storage.trunkMgr;
+package io.mybear.trunkMgr;
 
 /**
  * Created by jamie on 2017/7/8.
