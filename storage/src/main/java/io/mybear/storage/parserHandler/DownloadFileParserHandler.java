@@ -1,8 +1,8 @@
 package io.mybear.storage.parserHandler;
 
 
-import io.mybear.common.SharedFunc;
 import io.mybear.common.constants.config.StorageGlobal;
+import io.mybear.common.utils.SharedFunc;
 import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.storageNio.StorageClientInfo;
@@ -68,7 +68,7 @@ public class DownloadFileParserHandler implements ParserHandler<StorageClientInf
         nioData.get(bytes);
         String s = new String(bytes);
         c.fileContext.filenameBuffer.append(s);
-        c.fileContext.filename = c.fileContext.filenameBuffer.substring(StorageGlobal.g_group_name.length(), c.fileContext.filenameBuffer.length());
+        c.fileContext.filename = c.fileContext.filenameBuffer.substring(new String(StorageGlobal.g_group_name).trim().length(), c.fileContext.filenameBuffer.length());
         c.fileContext.filename = StorageGlobal.BASE_PATH + c.fileContext.filename;
         if (!SharedFunc.fileExists(c.fileContext.filename)) {
             LOGGER.error("没有这个文件:" + c.fileContext.filename);
@@ -86,19 +86,19 @@ public class DownloadFileParserHandler implements ParserHandler<StorageClientInf
                     //   con.fileContext.fileChannel = FileChannel.open(Paths.get(con.fileContext.filename), StandardOpenOption.READ);
                     long size = con.fileContext.end = con.fileContext.fileChannel.size();
                     header = con.getMyBufferPool().allocateByteBuffer().putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
-//                    con.fileContext.done_callback = (co) -> {
-//                        co.disableWrite();
-//                    };
+                    con.fileContext.done_callback = (co) -> {
+                        co.toHead();
+                    };
                     con.dealFunc = StorageDio::dio_read_file;
                     sendDownloadFileHead(con, header);
-                    return 0;
+                    return;
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            return 0;
+            return;
         };
-        c.toDownload();
+        c.toDownloadHead();
         StorageDio.queuePush(c);
     }
 

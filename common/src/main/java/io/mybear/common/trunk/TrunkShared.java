@@ -37,6 +37,11 @@ public class TrunkShared {
         Base64.base64InitEx(base64Context, 0, '-', '_', '.');
     }
 
+    /**
+     * g_fdfs_store_paths
+     *
+     * @return
+     */
     public static FdfsStorePaths getFdfsStorePaths() {
         return fdfsStorePaths;
     }

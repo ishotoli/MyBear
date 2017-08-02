@@ -1,6 +1,6 @@
 package io.mybear.tracker.command;
 
-import io.mybear.common.ErrorNo;
+import io.mybear.common.constants.ErrorNo;
 import io.mybear.common.tracker.FdfsStorageDetail;
 import io.mybear.common.tracker.FdfsStorageStat;
 import io.mybear.tracker.trackerNio.TrackerConnection;

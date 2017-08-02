@@ -16,7 +16,7 @@ package io.mybear.storage.trunkMgr;//package io.mybear.storage.trunkMgr;
 //import java.util.*;
 //import java.util.concurrent.ThreadLocalRandom;
 //
-//import static io.mybear.common.ErrorNo.EEXIST;
+//import static io.mybear.common.constants.ErrorNo.EEXIST;
 //import static io.mybear.storage.trunkMgr.TrunkMem.g_current_trunk_file_id;
 //import static io.mybear.storage.trunkMgr.TrunkMem.g_slot_min_size;
 //import static io.mybear.storage.trunkMgr.TrunkShared.FDFS_TRUNK_FILE_TYPE_NONE;

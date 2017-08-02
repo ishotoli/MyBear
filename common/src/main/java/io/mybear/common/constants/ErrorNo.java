@@ -1,4 +1,4 @@
-package io.mybear.common;
+package io.mybear.common.constants;
 
 public class ErrorNo {
     // Operation not permitted

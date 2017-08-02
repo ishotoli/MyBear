@@ -1,6 +1,6 @@
 package io.mybear.tracker.command;
 
-import io.mybear.common.ErrorNo;
+import io.mybear.common.constants.ErrorNo;
 import io.mybear.common.constants.TrackerProto;
 import io.mybear.common.utils.ProtocolUtil;
 import io.mybear.tracker.trackerNio.TrackerConnection;

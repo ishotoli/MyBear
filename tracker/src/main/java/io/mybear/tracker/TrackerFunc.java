@@ -2,10 +2,10 @@ package io.mybear.tracker;
 
 import com.alibaba.fastjson.JSON;
 import io.mybear.common.IniFileReader;
-import io.mybear.common.SharedFunc;
 import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.constants.config.FdfsGlobal;
 import io.mybear.common.constants.config.TrackerGlobal;
+import io.mybear.common.utils.SharedFunc;
 import io.mybear.common.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

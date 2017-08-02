@@ -8,10 +8,10 @@ import io.mybear.common.utils.HashUtil;
 import io.mybear.common.utils.TimeUtil;
 import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageFileContext;
-import io.mybear.storage.StorageService;
 import io.mybear.storage.StorageUploadInfo;
 import io.mybear.storage.storageNio.Connection;
 import io.mybear.storage.storageNio.StorageClientInfo;
+import io.mybear.storage.storageService.GenFilenameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +57,19 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
 
     }
 
+    static void setGroupName(ByteBuffer byteBuffer, byte[] name) {
+
+        ByteBuffer groupName = ByteBuffer.allocate(16);
+
+        groupName.put(name);
+
+        groupName.position(0).limit(16);
+
+        byteBuffer.put(ByteBuffer.wrap(name));
+
+    }
     static void setStorageCMDResp(ByteBuffer byteBuffer) {
-
         byteBuffer.put(8, TRACKER_PROTO_CMD_RESP);
-
     }
 
 
@@ -147,7 +156,7 @@ public class UploadFileParserHandler implements ParserHandler<StorageClientInfo,
         // con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, nioData.get(0), 0);
         con.fileContext.dioExecutorService = StorageDio.getThreadIndex(con, nioData.get(0), 0);
         int crc32 = 123456;
-        String fileName = StorageService.storageGetFilename(con, (int) TimeUtil.currentTimeMillis(), fileSize, crc32, new String(bytes).toCharArray()).trim();
+        String fileName = GenFilenameUtil.storageGetFilename(con, (int) TimeUtil.currentTimeMillis(), fileSize, crc32, new String(bytes).toCharArray()).trim();
         con.fileContext.filename = fileName;
         con.fileContext.openFlags = StandardOpenOption.APPEND;
         con.fileContext.done_callback = (c) -> {

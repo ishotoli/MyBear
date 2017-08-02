@@ -12,6 +12,8 @@ import java.security.MessageDigest;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.CRC32;
 
+import static io.mybear.storage.storageService.StorageService.*;
+
 /**
  * Created by jamie on 2017/6/22.
  */
@@ -37,7 +39,7 @@ public class StorageFileContext implements Serializable {
 
 
     public ExecutorService dioExecutorService;        //dio thread
-    public int timestamp2log;        //timestamp to log
+    public long timestamp2log;        //timestamp to log
     public int deleteFlag;     //delete file flag
     public int createFlag;    //create file flag
     public int buffOffset;    //buffer offset after recv to write to file
@@ -52,4 +54,39 @@ public class StorageFileContext implements Serializable {
 
     public long tvDealStart; //task deal start tv for access log
 
+    /*
+    #define STORAGE_CREATE_FLAG_NONE  0
+    #define STORAGE_CREATE_FLAG_FILE  1
+    #define STORAGE_CREATE_FLAG_LINK  2
+     */
+    public boolean isSTORAGE_CREATE_FLAG_NONE() {
+        return (STORAGE_CREATE_FLAG_NONE & createFlag) == STORAGE_CREATE_FLAG_NONE;
+
+    }
+
+    public boolean isSTORAGE_CREATE_FLAG_FILE() {
+        return (STORAGE_CREATE_FLAG_FILE & createFlag) == STORAGE_CREATE_FLAG_FILE;
+    }
+
+    public boolean isSTORAGE_CREATE_FLAG_LINKE() {
+        return (STORAGE_CREATE_FLAG_LINK & createFlag) == STORAGE_CREATE_FLAG_LINK;
+    }
+
+    /*
+    #define STORAGE_DELETE_FLAG_NONE  0
+    #define STORAGE_DELETE_FLAG_FILE  1
+    #define STORAGE_DELETE_FLAG_LINK  2
+     */
+    public boolean isSTORAGE_DELETE_FLAG_NONE() {
+        return (STORAGE_DELETE_FLAG_NONE & createFlag) == STORAGE_DELETE_FLAG_NONE;
+
+    }
+
+    public boolean isSTORAGE_DELETE_FLAG_FILE() {
+        return (STORAGE_DELETE_FLAG_FILE & createFlag) == STORAGE_DELETE_FLAG_FILE;
+    }
+
+    public boolean isSTORAGE_DELETE_FLAG_LINK() {
+        return (STORAGE_DELETE_FLAG_LINK & createFlag) == STORAGE_DELETE_FLAG_LINK;
+    }
 }

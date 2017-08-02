@@ -1,7 +1,7 @@
 package io.mybear.common.constants.config;
 
 import io.mybear.common.constants.CommonConstant;
-import io.mybear.common.utils.FilenameUtil;
+import io.mybear.common.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +46,8 @@ public class FdfsGlobal {
             log.error(CommonConstant.LOG_FORMAT, "fdfs_check_data_filename", "", String.format("the length=%d of filename %s is too short", fileName, len));
             return -1;
         }
-        if (!FilenameUtil.IS_UPPER_HEX(filename[0]) || !FilenameUtil.IS_UPPER_HEX(filename[1]) || filename[2] != '/' ||
-                !FilenameUtil.IS_UPPER_HEX(filename[3]) || !FilenameUtil.IS_UPPER_HEX(filename[4]) || filename[5] != '/') {
+        if (!StringUtil.isUpperHex(filename[0]) || !StringUtil.isUpperHex(filename[1]) || filename[2] != '/' ||
+                !StringUtil.isUpperHex(filename[3]) || !StringUtil.isUpperHex(filename[4]) || filename[5] != '/') {
             log.error(CommonConstant.LOG_FORMAT, "fdfs_check_data_filename", "", String.format("the format of filename  %s is invalid", fileName));
             return -1;
         }

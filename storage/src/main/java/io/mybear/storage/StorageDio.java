@@ -236,6 +236,55 @@ public class StorageDio {
         }
     }
 
+    /**
+     * 写完了
+     *
+     * @param task
+     */
+    public static int dio_delete_normal_file(StorageClientInfo task) {
+        StorageFileContext fileContext = task.fileContext;
+        int result = 0;
+        if (!new File(fileContext.filename).delete()) {
+            result = -1;
+            fileContext.log_callback.accept(task);
+        }
+        fileContext.done_callback.accept(task);
+        return result;
+    }
+
+    /**
+     * 写完了
+     *
+     * @param pTask
+     * @return
+     */
+    public static int dio_delete_trunk_file(StorageClientInfo pTask) {
+        StorageFileContext fileContext = pTask.fileContext;
+        int result = 0;
+        if (TrunkMem.trunkFileDelete(fileContext.filename, ((StorageUploadInfo) fileContext.extra_info).getTrunkInfo()) != 0) {
+            fileContext.log_callback.accept(pTask);
+            result = -1;
+        }
+        fileContext.done_callback.accept(pTask);
+        return 0;
+    }
+
+    public static void dio_read_finish_clean_up(StorageClientInfo pTask) {
+        StorageFileContext fileContext = pTask.fileContext;
+        if (fileContext.fileChannel != null && fileContext.fileChannel.isOpen()) {
+            try {
+                fileContext.fileChannel.close();
+                fileContext.fileChannel = null;
+                if (fileContext.randomAccessFile != null) {
+                    fileContext.randomAccessFile.close();
+                    fileContext.randomAccessFile = null;
+                }
+            } catch (IOException e) {
+                LOGGER.error(e.getLocalizedMessage());
+            }
+        }
+        fileContext.fileChannel = null;
+    }
 
     public void terminate() {
         g_dio_contexts = null;
@@ -279,39 +328,6 @@ public class StorageDio {
         return -1;
     }
 
-    /**
-     * 写完了
-     *
-     * @param task
-     */
-    public static int dio_delete_normal_file(StorageClientInfo task) {
-        StorageFileContext fileContext = task.fileContext;
-        int result = 0;
-        if (!new File(fileContext.filename).delete()) {
-            result = -1;
-            fileContext.log_callback.accept(task);
-        }
-        fileContext.done_callback.accept(task);
-        return result;
-    }
-
-    /**
-     * 写完了
-     *
-     * @param pTask
-     * @return
-     */
-    public static int dio_delete_trunk_file(StorageClientInfo pTask) {
-        StorageFileContext fileContext = pTask.fileContext;
-        int result = 0;
-        if (TrunkMem.trunkFileDelete(fileContext.filename, ((StorageUploadInfo) fileContext.extra_info).getTrunkInfo()) != 0) {
-            fileContext.log_callback.accept(pTask);
-            result = -1;
-        }
-        fileContext.done_callback.accept(pTask);
-        return 0;
-    }
-
     public int dio_discard_file(StorageClientInfo pTask) {
         StorageFileContext fileContext = pTask.fileContext;
         int result = 0;
@@ -323,23 +339,6 @@ public class StorageDio {
             nioNotify(pTask);
         }
         return 0;
-    }
-
-    public void dio_read_finish_clean_up(StorageClientInfo pTask) {
-        StorageFileContext fileContext = pTask.fileContext;
-        if (fileContext.fileChannel != null && fileContext.fileChannel.isOpen()) {
-            try {
-                fileContext.fileChannel.close();
-                fileContext.fileChannel = null;
-                if (fileContext.randomAccessFile != null) {
-                    fileContext.randomAccessFile.close();
-                    fileContext.randomAccessFile = null;
-                }
-            } catch (IOException e) {
-                LOGGER.error(e.getLocalizedMessage());
-            }
-        }
-        fileContext.fileChannel = null;
     }
 
     public void dio_write_finish_clean_up(StorageClientInfo pTask) {

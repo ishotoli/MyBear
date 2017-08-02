@@ -66,8 +66,8 @@ public class FDFSStorageStat {
     public LongAdder last_heart_beat_time = new LongAdder();
 
 
-    public int alloc_count;
-    public volatile int current_count;
-    public int max_count;
+    public LongAdder alloc_count = new LongAdder();
+    public LongAdder current_count = new LongAdder();
+    public LongAdder max_count = new LongAdder();
 
 }

@@ -7,4 +7,5 @@ public class StorageSetMetaInfo {
     public char op_flag;
     public StringBuilder metaBuff;
     public int meta_bytes;
+    public int filenameLength;
 }

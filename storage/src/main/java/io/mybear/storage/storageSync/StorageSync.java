@@ -39,12 +39,12 @@ public class StorageSync {
 
     ;
 
-    public static int storage_binlog_write(int timestamp, byte op_type, String filename) {
+    public static int storage_binlog_write(long timestamp, byte op_type, String filename) {
         return storage_binlog_write_ex(timestamp, op_type, filename, null);
 
     }
 
-    public static int storage_binlog_write_ex(int timestamp, byte op_type, String
+    public static int storage_binlog_write_ex(long timestamp, byte op_type, String
             filename, String extra) {
         return 0;
     }

@@ -74,7 +74,7 @@ public class StorageGlobal {
     public static int g_sync_until_timestamp;
     public static boolean g_sync_old_done;     //if old files synced to me done
     public static String g_sync_src_id; //the source storage server id
-    public static String g_group_name;
+    public static byte[] g_group_name;
     public static String g_my_server_id_str; //my server id string
     public static String g_tracker_client_ip; //storage ip as tracker client
     public static String g_last_storage_ip;    //the last storage ip address
@@ -110,7 +110,6 @@ public class StorageGlobal {
     public static long g_up_time;
     public static FdfsStorePathInfo[] g_path_space_list;
     public static IniFileReader iniReader;
-
     public static void init(String conf_filename) throws IOException {
         iniReader = new IniFileReader(conf_filename);
         BASE_PATH = iniReader.getStrValue("base_path");

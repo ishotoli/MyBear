@@ -6,12 +6,14 @@ import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.trunk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.util.Arrays;
+
 import static io.mybear.common.constants.CommonConstant.*;
 import static io.mybear.common.constants.config.FdfsGlobal.FDFS_FILE_EXT_NAME_MAX_LEN;
 import static io.mybear.common.trunk.TrunkShared.*;
@@ -23,8 +25,9 @@ import static io.mybear.common.utils.Utils.IS_TRUNK_FILE;
 /**
  * Created by jamie on 2017/7/31.
  */
-public class FilenameUtil {
-    public static final Logger log = LoggerFactory.getLogger(FilenameUtil.class);
+public class StringUtil {
+    public static final Logger log = LoggerFactory.getLogger(StringUtil.class);
+
 
     /**
      * 文件夹的范围是 0~9 和 A~F
@@ -32,8 +35,7 @@ public class FilenameUtil {
      * @param ch
      * @return
      */
-    public static boolean IS_UPPER_HEX(char ch) {
-
+    public static boolean isUpperHex(char ch) {
         return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F');
     }
 
@@ -47,6 +49,33 @@ public class FilenameUtil {
      */
     public static int storage_split_filename_ex(char[] logic_filename, int filename_len, char[] true_filename) {
         return SPLIT_FILENAME_BODY(logic_filename, filename_len, true_filename, true);
+    }
+
+    /**
+     * 获取文件名：返回结果类似 CD/00/wKi0hVjqXGeAcyFfAAGSt-FxG-0872.jpg
+     *
+     * @return
+     */
+    public static FilenameResultEx storage_split_filename_ex(String logic_filename) {
+        FilenameResultEx filenameResult = new FilenameResultEx();
+        char[] true_filename = new char[128];
+        filenameResult.storePathIndex = SPLIT_FILENAME_BODY(logic_filename.toCharArray(), logic_filename.length(), true_filename, true);
+        filenameResult.true_filename = new String(true_filename);
+        return filenameResult;
+    }
+
+    /**
+     * storage_split_filename
+     *
+     * @return
+     */
+    public static FilenameResult storage_split_filename(String logic_filename) {
+        FilenameResult filenameResult = new FilenameResult();
+        char[] true_filename = new char[128];
+        int index = SPLIT_FILENAME_BODY(logic_filename.toCharArray(), logic_filename.length(), true_filename, true);
+        filenameResult.ppStorePath = TrunkShared.getFdfsStorePaths().getPaths()[index];
+        filenameResult.true_filename = new String(true_filename);
+        return filenameResult;
     }
 
     /**
@@ -71,7 +100,8 @@ public class FilenameUtil {
             return -1;
         }
         if (logic_filename[0] != FDFS_STORAGE_STORE_PATH_PREFIX_CHAR) { /* version < V1.12 */
-            System.arraycopy(logic_filename, 0, true_filename, 0, filename_len + 1);
+//            System.arraycopy(logic_filename, 0, true_filename, 0, filename_len + 1);
+            System.arraycopy(logic_filename, 0, true_filename, 0, filename_len);
             return 0;
         }
         if (logic_filename[3] != '/') {
@@ -279,11 +309,12 @@ public class FilenameUtil {
 
     public static char[] trunk_get_full_filename(FdfsTrunkFullInfo pTrunkInfo,
                                                  char[] full_filename, int length) {
-        return trunk_get_full_filename_ex(TrunkShared.fdfsStorePaths,pTrunkInfo,full_filename,length);
+        return trunk_get_full_filename_ex(TrunkShared.fdfsStorePaths, pTrunkInfo, full_filename, length);
     }
 
     /**
      * 返回full_fileName
+     *
      * @param pStorePaths
      * @param pTrunkInfo
      * @param full_filename

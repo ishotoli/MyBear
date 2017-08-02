@@ -335,6 +335,7 @@ public abstract class Connection implements ClosableConnection {
      */
     private boolean write() throws IOException {
         Object flagData = this.flagData;//被dio线程设置writeBuffer后被唤醒
+        if (flagData == null) return true;
         if (packetState == downloadHead) {
             return writeDownloadByteBuffer((ByteBuffer) flagData);
 
@@ -343,6 +344,7 @@ public abstract class Connection implements ClosableConnection {
             if (flagData == Boolean.TRUE) {
                 // LOGGER.debug("flagData= Boolean.False;发送下载数据,需要通知dio,dio每处理一次通知完毕后,把flagData == Boolean.False,直至结束");
                 StorageDio.queuePush(this);
+                this.flagData = Boolean.FALSE;
                 return false;
             }
             return false;
@@ -460,7 +462,7 @@ public abstract class Connection implements ClosableConnection {
         }
     }
 
-    void toHead() {
+    public void toHead() {
         length = 0;
         metaDataLength = 0;
         offset = 0;
@@ -486,14 +488,14 @@ public abstract class Connection implements ClosableConnection {
         this.packetState = header;
     }
 
-    void toPacket() {
+    public void toPacket() {
         ByteBuffer byteBuffer = readBuffer;
         byteBuffer.position(0);
         byteBuffer.limit(byteBuffer.capacity());
         this.packetState = packet;
     }
 
-    void toMetaData(int metaDatalength) {
+    public void toMetaData(int metaDatalength) {
         ByteBuffer byteBuffer = readBuffer;
         byteBuffer.position(0);
         try {
@@ -504,7 +506,7 @@ public abstract class Connection implements ClosableConnection {
         this.packetState = metaData;
     }
 
-    void toFix() {
+    public void toFix() {
         ByteBuffer byteBuffer = readBuffer;
         long rest = (this.length - this.offset) % byteBuffer.capacity();
         byteBuffer.position(0);
@@ -528,10 +530,16 @@ public abstract class Connection implements ClosableConnection {
         //this.flagData=Boolean.FALSE;
     }
 
-    public void toDownload() {
+    public void toDownloadHead() {
         assert isInReactorThread();
         this.packetState = PacketState.downloadHead;
     }
+
+    public void toDownloadData() {
+        assert isInReactorThread();
+        this.packetState = PacketState.downloadData;
+    }
+
 
     private void process() throws IOException {
         if (readBuffer != null && !isClosed) {//异步读函数,没有readBuffer意味着不需要处理上传数据,消除重复读

@@ -12,7 +12,7 @@ public class StorageDownloadFileTest {
         TwoServerTest.startup();
         StorageClient1 client = TwoServerTest.getStorageClient();
         String group_name = "group1";
-        String remote_filename = "group1/data/00/00/AAAAAGT9WIGAAAAOAAD5SAAB4kAexe";
+        String remote_filename = "group1/data/00/00/AAAAAKMb3nWAAAAfAAD5SAAB4kAexe";
         long file_offset = 0;
         long download_bytes = 256;
         for (int i = 0; i < 100; i++) {

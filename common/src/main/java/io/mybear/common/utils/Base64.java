@@ -1,12 +1,13 @@
 package io.mybear.common.utils;
 
-import java.util.Arrays;
-import java.util.Random;
 import com.alibaba.fastjson.JSON;
 import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.context.Base64Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Random;
 
 /**
  * Created by wb-zhangkenan on 2017/7/10.
@@ -15,8 +16,6 @@ import org.slf4j.LoggerFactory;
  * @date 2017/07/10
  */
 public class Base64 {
-
-    private static final Logger log = LoggerFactory.getLogger(Base64.class);
 
     /**
      * Marker value for chars we just ignore, e.g. \n \r high ascii
@@ -27,6 +26,7 @@ public class Base64 {
      */
     public static final int BASE64_PAD = -2;
     public static final Random random = new Random();
+    private static final Logger log = LoggerFactory.getLogger(Base64.class);
 
     /**
      * 初始化 Base64Context Base64#base64_init_ex
@@ -100,7 +100,8 @@ public class Base64 {
             leftover = nSrcLen - lens[0];
             ppSrcs[0] = src;
             ppSrcs[1] = szPad;
-            System.out.println(src);
+            //todo 这里输出的是什么???
+            //  System.out.println(src);
             szPad[0] = szPad[1] = szPad[2] = '\0';
             switch (leftover) {
                 case 0:

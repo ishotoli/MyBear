@@ -1,4 +1,4 @@
-package io.mybear.common;
+package io.mybear.common.utils;
 
 import java.io.File;
 
@@ -58,5 +58,17 @@ public class SharedFunc {
             return true;
         }
         return false;
+    }
+
+    /**
+     * 改名
+     *
+     * @param path
+     * @return
+     */
+    public static boolean rename(String path, String newname) {
+        File file = new File(path);
+        File file1 = new File(newname);
+        return file.renameTo(file1);
     }
 }

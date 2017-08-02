@@ -18,7 +18,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalTime;
@@ -98,7 +100,7 @@ public class FdfsStoraged {
         return 0;
     }
 
-    static int fdfsValidateGroupName(String groupName) {
+    static int fdfsValidateGroupName(byte[] groupName) {
         return 0;
     }
 
@@ -242,8 +244,10 @@ public class FdfsStoraged {
                 result = -1;
                 break;
             } else {
-                g_group_name = pGroupName;
-                LOGGER.info(g_group_name);
+                ByteBuffer byteBuffer = ByteBuffer.allocate(16).put(pGroupName.getBytes(StandardCharsets.US_ASCII));
+                byteBuffer.position(0).limit(16);
+                g_group_name = byteBuffer.array();
+                LOGGER.info(pGroupName);
             }
             if ((result = fdfsValidateGroupName(g_group_name)) != 0) {
                 LOGGER.error("conf file \"%s\"the group name \"%s\" is invalid!", filename, g_group_name);

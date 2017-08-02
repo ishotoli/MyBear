@@ -2,11 +2,11 @@ package io.mybear.storage;
 
 import com.alibaba.fastjson.JSON;
 import io.mybear.common.IniFileReader;
-import io.mybear.common.SharedFunc;
 import io.mybear.common.constants.CommonConstant;
 import io.mybear.common.constants.config.StorageGlobal;
 import io.mybear.common.trunk.FdfsStorePathInfo;
 import io.mybear.common.trunk.TrunkShared;
+import io.mybear.common.utils.SharedFunc;
 import io.mybear.storage.trunkMgr.TrunkMem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +16,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static io.mybear.common.SharedFunc.isDir;
 import static io.mybear.common.constants.CommonConstant.FDFS_STORAGE_DATA_DIR_FORMAT;
 import static io.mybear.common.constants.config.FdfsGlobal.g_fdfs_base_path;
 import static io.mybear.common.constants.config.FdfsGlobal.g_server_port;
 import static io.mybear.common.constants.config.StorageGlobal.*;
+import static io.mybear.common.utils.SharedFunc.isDir;
 import static io.mybear.storage.FdfsStoraged.g_current_time;
 import static io.mybear.storage.StorageDiskRecovery.storage_disk_recovery_start;
 

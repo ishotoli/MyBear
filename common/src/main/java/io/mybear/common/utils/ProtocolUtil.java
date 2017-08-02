@@ -3,6 +3,8 @@ package io.mybear.common.utils;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+import static io.mybear.common.constants.TrackerProto.TRACKER_PROTO_CMD_RESP;
+
 /**
  * Created by jamie on 2017/7/22.
  */
@@ -40,6 +42,12 @@ public class ProtocolUtil {
         byteBuffer.put(groupName);
     }
 
+    public static void setGroupName(ByteBuffer byteBuffer, byte[] name) {
+        ByteBuffer groupName = ByteBuffer.allocate(16);
+        groupName.put(name);
+        groupName.position(0).limit(16);
+        byteBuffer.put(groupName);
+    }
     public static void setStorePathIndex(ByteBuffer byteBuffer, int index) {
         byteBuffer.put((byte) index);
     }
@@ -53,5 +61,9 @@ public class ProtocolUtil {
 
     public static void setPort(ByteBuffer byteBuffer, int port) {
         byteBuffer.putLong(port);
+    }
+
+    public static void setStorageCMDResp(ByteBuffer byteBuffer) {
+        byteBuffer.put(8, TRACKER_PROTO_CMD_RESP);
     }
 }

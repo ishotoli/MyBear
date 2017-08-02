@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static io.mybear.common.ErrorNo.EEXIST;
 import static io.mybear.common.constants.CommonConstant.FDFS_DEF_STORAGE_RESERVED_MB;
 import static io.mybear.common.constants.CommonConstant.FDFS_STORE_PATH_ROUND_ROBIN;
+import static io.mybear.common.constants.ErrorNo.EEXIST;
 import static io.mybear.common.trunk.TrunkShared.FDFS_TRUNK_STATUS_FREE;
 import static io.mybear.common.trunk.TrunkShared.FDFS_TRUNK_STATUS_HOLD;
 
