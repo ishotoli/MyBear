@@ -276,3 +276,31 @@ public static final byte STORAGE_PROTO_CMD_TRUNCATE_FILE = 36;  //truncate appen
 //pkg_len=filenameLength:8byte+truncatedFileSize:8byte+文件名数据
 //返回STORAGE_PROTO_CMD_RESP
 ```
+#### 文件名长度
+
+```
+#define FDFS_FILE_EXT_NAME_MAX_LEN	6
+#define FDFS_GROUP_NAME_MAX_LEN		16
+#define FDFS_MAX_SERVERS_EACH_GROUP	32
+#define FDFS_MAX_GROUPS		       512
+#define FDFS_MAX_TRACKERS		16
+
+#define FDFS_MAX_META_NAME_LEN		 64
+#define FDFS_MAX_META_VALUE_LEN		256
+
+#define FDFS_FILE_PREFIX_MAX_LEN	16
+#define FDFS_LOGIC_FILE_PATH_LEN	10
+#define FDFS_TRUE_FILE_PATH_LEN		 6
+#define FDFS_FILENAME_BASE64_LENGTH     27
+#define FDFS_TRUNK_FILE_INFO_LEN  16
+#define FDFS_MAX_SERVER_ID        ((1 << 24) - 1)
+
+char filename[MAX_PATH_SIZE + 128];  	//full filename
+/* FDFS logic filename to log not including group name */
+char fname2log[128+sizeof(FDFS_STORAGE_META_FILE_EXT)];
+char master_filename[128];
+char file_ext_name[FDFS_FILE_EXT_NAME_MAX_LEN + 1];
+char formatted_ext_name[FDFS_FILE_EXT_NAME_MAX_LEN + 2];
+char prefix_name[FDFS_FILE_PREFIX_MAX_LEN + 1];
+char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];  	//the upload group name
+```

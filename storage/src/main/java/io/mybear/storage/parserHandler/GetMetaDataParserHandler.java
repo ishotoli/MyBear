@@ -57,8 +57,6 @@ public class GetMetaDataParserHandler implements ParserHandler<StorageClientInfo
         int store_path_index = StringUtil.storage_split_filename_ex(con.getMetaInfo().metaBuff.toString().toCharArray(), true_filename.length, true_filename);
         con.fileContext.filename = String.format("%s/data/%s%s", TrunkShared.getFdfsStorePaths().getPaths()[store_path_index], new String(true_filename), FDFS_STORAGE_META_FILE_EXT);
         con.dealFunc = StorageDio::dio_read_file;
-        con.fileContext.done_callback = (clientInfo) -> {
-        };
     }
 
     @Override

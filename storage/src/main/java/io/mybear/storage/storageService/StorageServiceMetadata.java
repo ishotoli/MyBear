@@ -1,14 +1,13 @@
 package io.mybear.storage.storageService;
 
 import io.mybear.common.constants.config.StorageGlobal;
-import io.mybear.common.utils.MetadataUtil;
-import io.mybear.common.utils.ProtocolUtil;
-import io.mybear.common.utils.SharedFunc;
+import io.mybear.common.trunk.TrunkShared;
+import io.mybear.common.utils.*;
 import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.StorageSetMetaInfo;
+import io.mybear.storage.StorageUploadInfo;
 import io.mybear.storage.storageNio.StorageClientInfo;
-import io.mybear.storage.storageSync.StorageSync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,14 +20,15 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.mybear.common.constants.CommonConstant.FDFS_STORAGE_META_FILE_EXT;
 import static io.mybear.common.constants.TrackerProto.STORAGE_PROTO_CMD_RESP;
 import static io.mybear.common.constants.TrackerProto.STORAGE_SET_METADATA_FLAG_OVERWRITE;
+import static io.mybear.common.constants.config.StorageGlobal.g_check_file_duplicate;
 import static io.mybear.common.constants.config.StorageGlobal.g_storage_stat;
 import static io.mybear.storage.FdfsStoraged.g_current_time;
 import static io.mybear.storage.storageService.StorageService.ACCESS_LOG_ACTION_SET_METADATA;
 import static io.mybear.storage.storageService.StorageServiceHelper.storage_log_access_log;
-import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
-import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_UPDATE_FILE;
+import static io.mybear.storage.storageSync.StorageSync.*;
 
 /**
  * Created by jamie on 2017/8/2.
@@ -36,7 +36,7 @@ import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_U
 public class StorageServiceMetadata {
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageServiceMetadata.class);
 
-    public static int storageProtoCmdSetMetadata(StorageClientInfo clientInfo) {
+    public static int storage_do_set_metadata(StorageClientInfo clientInfo) {
         StorageFileContext fileContext = clientInfo.fileContext;
         StorageSetMetaInfo setmeta = (StorageSetMetaInfo) clientInfo.extraArg;
         List<String[]> list = MetadataUtil.splitMetadata(setmeta.metaBuff);
@@ -54,7 +54,7 @@ public class StorageServiceMetadata {
                             result = 0;
                             break;
                         }
-                        fileContext.syncFlag = StorageSync.STORAGE_OP_TYPE_SOURCE_DELETE_FILE;
+                        fileContext.syncFlag = STORAGE_OP_TYPE_SOURCE_DELETE_FILE;
                         if (!SharedFunc.delete(fileContext.filename)) {
                             LOGGER.error("client ip: %s, delete file %s fail", clientInfo.getChannel().getRemoteAddress(), fileContext.filename);
                             result = -1;
@@ -188,12 +188,12 @@ public class StorageServiceMetadata {
         return storage_set_metadata_done_callback(clientInfo, result);
     }
 
-    static int storage_set_metadata_done_callback(StorageClientInfo con, int error) {
+    public static int storage_set_metadata_done_callback(StorageClientInfo con, int error) {
         StorageFileContext pFileContext = con.fileContext;
         int result = 0;
         if (error == 0) {
             if (pFileContext.syncFlag != '\0') {
-                result = StorageSync.storage_binlog_write(pFileContext.timestamp2log, pFileContext.syncFlag, pFileContext.fname2log);
+                result = storage_binlog_write(pFileContext.timestamp2log, pFileContext.syncFlag, pFileContext.fname2log);
             } else {
                 result = -1;
             }
@@ -216,5 +216,276 @@ public class StorageServiceMetadata {
         StorageDio.nioNotify(con);
         return 0;
     }
+
+
+    public static int storage_do_delete_meta_file(StorageClientInfo con) {
+        StorageFileContext pFileContext = con.fileContext;
+        StorageUploadInfo upload = (StorageUploadInfo) pFileContext.extra_info;
+//        GroupArray * pGroupArray;
+//        char meta_filename[ MAX_PATH_SIZE + 256];
+
+//        char value[ 128];
+//        FDHTKeyInfo key_info_fid;
+//        FDHTKeyInfo key_info_ref;
+//        FDHTKeyInfo key_info_sig;
+//    char *pValue;
+        int value_len;
+        int src_file_nlink;
+        int result;
+        int store_path_index;
+        String true_filename;
+        String meta_filename;
+
+
+        if (upload.isTRUNK()) {
+            //@todo 校验文件名长度
+            // int filename_len = strlen(pFileContext -> fname2log);
+            FilenameResultEx res = StringUtil.storage_split_filename_ex(pFileContext.fname2log);
+            store_path_index = res.storePathIndex;
+            true_filename = res.true_filename;
+            res = null;
+            meta_filename = String.format("%s/data/%s" + FDFS_STORAGE_META_FILE_EXT, TrunkShared.getFdfsStorePaths().getPaths()[store_path_index], true_filename);
+        } else {
+            meta_filename = String.format("%s" + FDFS_STORAGE_META_FILE_EXT, pFileContext.filename);
+        }
+        if (SharedFunc.fileExists(meta_filename)) {
+            if (!SharedFunc.unlink(meta_filename)) {
+                LOGGER.error("client ip: %s, delete file %s fail", con.getHost(), meta_filename);
+//                if (errno != ENOENT) {
+//                    result = errno != 0 ? errno : EACCES;
+//                    logError("file: "__FILE__", line: %d, " \
+//                            "client ip: %s, delete file %s fail," \
+//                            "errno: %d, error info: %s", __LINE__,\
+//                            pTask -> client_ip, meta_filename, \
+//                            result, STRERROR(result));
+                return -1;
+            }
+        } else {
+            meta_filename = String.format("%s" + FDFS_STORAGE_META_FILE_EXT, pFileContext.fname2log);
+            result = storage_binlog_write(g_current_time, STORAGE_OP_TYPE_SOURCE_DELETE_FILE, meta_filename);
+            if (result != 0) {
+                return result;
+            }
+        }
+
+
+        src_file_nlink = -1;
+        if (g_check_file_duplicate) {
+//            pGroupArray=&((g_nio_thread_data+pClientInfo->nio_thread_index)\
+//				->group_array);
+//            memset(&key_info_sig, 0, sizeof(key_info_sig));
+//            key_info_sig.namespace_len = g_namespace_len;
+//            memcpy(key_info_sig.szNameSpace, g_key_namespace, \
+//                    g_namespace_len);
+//            key_info_sig.obj_id_len = snprintf(\
+//                    key_info_sig.szObjectId, \
+//                    sizeof(key_info_sig.szObjectId), "%s/%s", \
+//                    g_group_name, pFileContext->fname2log);
+//
+//            key_info_sig.key_len = sizeof(FDHT_KEY_NAME_FILE_SIG)-1;
+//            memcpy(key_info_sig.szKey, FDHT_KEY_NAME_FILE_SIG, \
+//                    key_info_sig.key_len);
+//            pValue = value;
+//            value_len = sizeof(value) - 1;
+//            result = fdht_get_ex1(pGroupArray, g_keep_alive, \
+//                    &key_info_sig, FDHT_EXPIRES_NONE, \
+//				&pValue, &value_len, malloc);
+//            if (result == 0)
+//            {
+//                memcpy(&key_info_fid, &key_info_sig, \
+//                sizeof(FDHTKeyInfo));
+//                key_info_fid.obj_id_len = value_len;
+//                memcpy(key_info_fid.szObjectId, pValue, \
+//                        value_len);
+//
+//                key_info_fid.key_len = sizeof(FDHT_KEY_NAME_FILE_ID) - 1;
+//                memcpy(key_info_fid.szKey, FDHT_KEY_NAME_FILE_ID, \
+//                        key_info_fid.key_len);
+//                value_len = sizeof(value) - 1;
+//                result = fdht_get_ex1(pGroupArray, \
+//                        g_keep_alive, &key_info_fid, \
+//                FDHT_EXPIRES_NONE, &pValue, \
+//					&value_len, malloc);
+//                if (result == 0)
+//                {
+//                    memcpy(&key_info_ref, &key_info_sig, \
+//                    sizeof(FDHTKeyInfo));
+//                    key_info_ref.obj_id_len = value_len;
+//                    memcpy(key_info_ref.szObjectId, pValue,
+//                            value_len);
+//                    key_info_ref.key_len = \
+//                    sizeof(FDHT_KEY_NAME_REF_COUNT)-1;
+//                    memcpy(key_info_ref.szKey, \
+//                            FDHT_KEY_NAME_REF_COUNT, \
+//                            key_info_ref.key_len);
+//                    value_len = sizeof(value) - 1;
+//
+//                    result = fdht_get_ex1(pGroupArray, \
+//                            g_keep_alive, &key_info_ref, \
+//                    FDHT_EXPIRES_NONE, &pValue, \
+//						&value_len, malloc);
+//                    if (result == 0)
+//                    {
+//					*(pValue + value_len) = '\0';
+//                        src_file_nlink = atoi(pValue);
+//                    }
+//                    else if (result != ENOENT)
+//                    {
+//                        logError("file: "__FILE__", line: %d, " \
+//                                "client ip: %s, fdht_get fail," \
+//                                "errno: %d, error info: %s", \
+//                                __LINE__, pTask->client_ip, \
+//                                result, STRERROR(result));
+//                        return result;
+//                    }
+//                }
+//                else if (result != ENOENT)
+//                {
+//                    logError("file: "__FILE__", line: %d, " \
+//                            "client ip: %s, fdht_get fail," \
+//                            "errno: %d, error info: %s", \
+//                            __LINE__, pTask->client_ip, \
+//                            result, STRERROR(result));
+//                    return result;
+//                }
+//            }
+//            else if (result != ENOENT)
+//            {
+//                logError("file: "__FILE__", line: %d, " \
+//                        "client ip: %s, fdht_get fail," \
+//                        "errno: %d, error info: %s", \
+//                        __LINE__, pTask->client_ip, \
+//                        result, STRERROR(result));
+//                return result;
+//            }
+        }
+
+        if (src_file_nlink < 0) {
+            return 0;
+        }
+
+        if (g_check_file_duplicate) {
+//		char *pSeperator;
+//            struct stat stat_buf;
+//            FDFSTrunkHeader trunkHeader;
+//
+//            pGroupArray=&((g_nio_thread_data+pClientInfo->nio_thread_index)\
+//				->group_array);
+//            if ((result=fdht_delete_ex(pGroupArray, g_keep_alive, \
+//                    &key_info_sig)) != 0)
+//            {
+//                logWarning("file: "__FILE__", line: %d, " \
+//                        "client ip: %s, fdht_delete fail," \
+//                        "errno: %d, error info: %s", \
+//                        __LINE__, pTask->client_ip, \
+//                        result, STRERROR(result));
+//            }
+//
+//            value_len = sizeof(value) - 1;
+//            result = fdht_inc_ex(pGroupArray, g_keep_alive, \
+//                    &key_info_ref, FDHT_EXPIRES_NEVER, -1, \
+//            value, &value_len);
+//            if (result != 0)
+//            {
+//                logWarning("file: "__FILE__", line: %d, " \
+//                        "client ip: %s, fdht_inc fail," \
+//                        "errno: %d, error info: %s", \
+//                        __LINE__, pTask->client_ip, \
+//                        result, STRERROR(result));
+//                return result;
+//            }
+//
+//            if (!(value_len == 1 && *value == '0')) //value == 0
+//            {
+//                return 0;
+//            }
+//
+//            if ((result=fdht_delete_ex(pGroupArray, g_keep_alive, \
+//                    &key_info_fid)) != 0)
+//            {
+//                logWarning("file: "__FILE__", line: %d, " \
+//                        "client ip: %s, fdht_delete fail," \
+//                        "errno: %d, error info: %s", \
+//                        __LINE__, pTask->client_ip, \
+//                        result, STRERROR(result));
+//            }
+//            if ((result=fdht_delete_ex(pGroupArray, g_keep_alive, \
+//                    &key_info_ref)) != 0)
+//            {
+//                logWarning("file: "__FILE__", line: %d, " \
+//                        "client ip: %s, fdht_delete fail," \
+//                        "errno: %d, error info: %s", \
+//                        __LINE__, pTask->client_ip, \
+//                        result, STRERROR(result));
+//            }
+//
+//		*(key_info_ref.szObjectId+key_info_ref.obj_id_len)='\0';
+//            pSeperator = strchr(key_info_ref.szObjectId, '/');
+//            if (pSeperator == NULL)
+//            {
+//                logWarning("file: "__FILE__", line: %d, " \
+//                        "invalid file_id: %s", __LINE__, \
+//                        key_info_ref.szObjectId);
+//                return 0;
+//            }
+//
+//            pSeperator++;
+//            value_len = key_info_ref.obj_id_len - (pSeperator - \
+//            key_info_ref.szObjectId);
+//            memcpy(value, pSeperator, value_len + 1);
+//            if ((result=storage_split_filename_ex(value, &value_len, \
+//            true_filename, &store_path_index)) != 0)
+//            {
+//                return result;
+//            }
+//            if ((result=fdfs_check_data_filename(true_filename, \
+//                    value_len)) != 0)
+//            {
+//                return result;
+//            }
+//
+//            if ((result=trunk_file_lstat(store_path_index, true_filename, \
+//                    value_len, &stat_buf, \
+//			&(pFileContext->extra_info.upload.trunk_info), \
+//			&trunkHeader)) != 0)
+//            {
+//                STORAGE_STAT_FILE_FAIL_LOG(result, pTask->client_ip,
+//                        "logic", value)
+//                return 0;
+//            }
+//
+//            if (IS_TRUNK_FILE_BY_ID(pFileContext->extra_info. \
+//                    upload.trunk_info))
+//            {
+//                trunk_get_full_filename(&(pFileContext->extra_info. \
+//                upload.trunk_info), pFileContext->filename, \
+//                sizeof(pFileContext->filename));
+//            }
+//            else
+//            {
+//                sprintf(pFileContext->filename, "%s/data/%s", \
+//                        g_fdfs_store_paths.paths[store_path_index], \
+//                        true_filename);
+//            }
+//
+//            if ((result=storage_delete_file_auto(pFileContext)) != 0)
+//            {
+//                logWarning("file: "__FILE__", line: %d, " \
+//                        "client ip: %s, delete logic source file " \
+//                        "%s fail, errno: %d, error info: %s", \
+//                        __LINE__, pTask->client_ip, \
+//                        value, errno, STRERROR(errno));
+//                return 0;
+//            }
+//
+//            storage_binlog_write(g_current_time, \
+//                    STORAGE_OP_TYPE_SOURCE_DELETE_FILE, value);
+//            pFileContext->delete_flag |= STORAGE_DELETE_FLAG_FILE;
+        }
+
+        return 0;
+    }
+
+
 
 }

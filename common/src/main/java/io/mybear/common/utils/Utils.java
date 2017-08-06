@@ -30,7 +30,7 @@ public final class Utils {
         return ((file_size & FDFS_APPENDER_FILE_SIZE) != 0);
     }
 
-    public static final boolean IS_TRUNK_FILE(int file_size) {
+    public static final boolean IS_TRUNK_FILE(long file_size) {
         return ((file_size & FDFS_TRUNK_FILE_MARK_SIZE) != 0);
     }
 

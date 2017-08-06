@@ -6,6 +6,7 @@ import io.mybear.common.utils.ProtocolUtil;
 import io.mybear.common.utils.SharedFunc;
 import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.StorageUploadInfo;
+import io.mybear.storage.TrunkClient;
 import io.mybear.storage.storageNio.StorageClientInfo;
 import io.mybear.storage.storageSync.StorageSync;
 import org.slf4j.Logger;
@@ -25,8 +26,7 @@ import static io.mybear.storage.FdfsStoraged.g_current_time;
 import static io.mybear.storage.StorageDio.*;
 import static io.mybear.storage.storageService.StorageService.*;
 import static io.mybear.storage.storageService.StorageServiceHelper.*;
-import static io.mybear.storage.storageSync.StorageSync.STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
-import static io.mybear.storage.storageSync.StorageSync.storage_binlog_write;
+import static io.mybear.storage.storageSync.StorageSync.*;
 
 /**
  * Created by jamie on 2017/8/1.
@@ -481,51 +481,49 @@ public class StorageServiceDoneCallback {
      * @param pClientInfo
      * @param err_no
      */
-//    public static void storage_delete_fdfs_file_done_callback(StorageClientInfo pClientInfo, final int err_no) {
-//        StorageFileContext pFileContext = pClientInfo.fileContext;
-//        int result = 0;
-//        if (err_no == 0) {
-//            if (upload.getFileType() &
-//                    _FILE_TYPE_TRUNK) {
-//                trunk_client_trunk_free_space(
-//                        & (pFileContext.extra_info.upload.trunk_info));
-//            }
-//
-//            result = storage_binlog_write(g_current_time, STORAGE_OP_TYPE_SOURCE_DELETE_FILE, pFileContext.fname2log);
-//        } else {
-//            result = err_no;
-//        }
-//
-//        if (result == 0) {
-//            result = storage_do_delete_meta_file(pClientInfo,result);
-//        }
-//        if (result != 0) {
-//            if (pFileContext.deleteFlag == STORAGE_DELETE_FLAG_NONE ||
-//                    (pFileContext.deleteFlag & STORAGE_DELETE_FLAG_FILE)) {
-//                g_storage_stat.total_delete_count++;
-//            }
-//            if (pFileContext.delete_flag & STORAGE_DELETE_FLAG_LINK) {
-//                g_storage_stat.total_delete_link_count++;
-//            }
-//        } else {
-//            if (pFileContext.deleteFlag & STORAGE_DELETE_FLAG_FILE) {
-//                CHECK_AND_WRITE_TO_STAT_FILE3(
-//                        g_storage_stat.total_delete_count,
-//                        g_storage_stat.success_delete_count,
-//                        g_storage_stat.last_source_update)
-//            }
-//
-//            if ((pFileContext.deleteFlag & STORAGE_DELETE_FLAG_LINK)==STORAGE_DELETE_FLAG_LINK) {
-//                CHECK_AND_WRITE_TO_STAT_FILE3(
-//                        g_storage_stat.total_delete_link_count,
-//                        g_storage_stat.success_delete_link_count,
-//                        g_storage_stat.last_source_update);
-//            }
-//
-//        }
-//        STORAGE_ACCESS_LOG(pClientInfo, ACCESS_LOG_ACTION_DELETE_FILE, result);
-//        pClientInfo.write(StorageServiceHelper.getHeadSetStateFromBufferPool(pClientInfo,result));
-//    }
+    public static void storage_delete_fdfs_file_done_callback(StorageClientInfo pClientInfo, final int err_no) {
+        StorageFileContext pFileContext = pClientInfo.fileContext;
+        StorageUploadInfo upload = (StorageUploadInfo) pFileContext.extra_info;
+        int result = 0;
+        if (err_no == 0) {
+            if (upload.isTRUNK()) {
+                TrunkClient.freeSpace(upload.getTrunkInfo(), err_no);
+            }
+            result = storage_binlog_write(g_current_time, STORAGE_OP_TYPE_SOURCE_DELETE_FILE, pFileContext.fname2log);
+        } else {
+            result = err_no;
+        }
+
+        if (result == 0) {
+            result = StorageServiceMetadata.storage_do_delete_meta_file(pClientInfo);
+        }
+        if (result != 0) {
+            if (pFileContext.isSTORAGE_DELETE_FLAG_NONE() ||
+                    (pFileContext.isSTORAGE_DELETE_FLAG_FILE())) {
+                g_storage_stat.total_delete_count.increment();
+            }
+            if (pFileContext.isSTORAGE_DELETE_FLAG_LINK()) {
+                g_storage_stat.total_delete_link_count.increment();
+            }
+        } else {
+            if (pFileContext.isSTORAGE_CREATE_FLAG_FILE()) {
+                CHECK_AND_WRITE_TO_STAT_FILE3(
+                        g_storage_stat.total_delete_count,
+                        g_storage_stat.success_delete_count,
+                        g_storage_stat);
+            }
+
+            if ((pFileContext.deleteFlag & STORAGE_DELETE_FLAG_LINK) == STORAGE_DELETE_FLAG_LINK) {
+                CHECK_AND_WRITE_TO_STAT_FILE3(
+                        g_storage_stat.total_delete_link_count,
+                        g_storage_stat.success_delete_link_count,
+                        g_storage_stat);
+            }
+
+        }
+        STORAGE_ACCESS_LOG(pClientInfo, ACCESS_LOG_ACTION_DELETE_FILE, result);
+        pClientInfo.write(StorageServiceHelper.getHeadSetStateFromBufferPool(pClientInfo, result));
+    }
 
     /**
      * storage_upload_file_done_callback
@@ -565,7 +563,7 @@ public class StorageServiceDoneCallback {
                 CHECK_AND_WRITE_TO_STAT_FILE3_WITH_BYTES(
                         g_storage_stat.total_upload_count,
                         g_storage_stat.success_upload_count,
-                        g_storage_stat.last_source_update,
+                        g_storage_stat,
                         g_storage_stat.total_upload_bytes,
                         g_storage_stat.success_upload_bytes,
                         pFileContext.end - pFileContext.start);
@@ -719,7 +717,7 @@ public class StorageServiceDoneCallback {
             CHECK_AND_WRITE_TO_STAT_FILE3_WITH_BYTES(
                     g_storage_stat.total_append_count,
                     g_storage_stat.success_append_count,
-                    g_storage_stat.last_source_update,
+                    g_storage_stat,
                     g_storage_stat.total_append_bytes,
                     g_storage_stat.success_append_bytes,
                     pFileContext.end - pFileContext.start);
@@ -763,7 +761,7 @@ public class StorageServiceDoneCallback {
             CHECK_AND_WRITE_TO_STAT_FILE3_WITH_BYTES(
                     g_storage_stat.total_modify_count,
                     g_storage_stat.success_modify_count,
-                    g_storage_stat.last_source_update,
+                    g_storage_stat,
                     g_storage_stat.total_modify_bytes,
                     g_storage_stat.success_modify_bytes,
                     pFileContext.end - pFileContext.start);
@@ -803,7 +801,7 @@ public class StorageServiceDoneCallback {
         }
 
         if (result == 0) {
-            CHECK_AND_WRITE_TO_STAT_FILE3(g_storage_stat.total_truncate_count, g_storage_stat.success_truncate_count, g_storage_stat.last_source_update);
+            CHECK_AND_WRITE_TO_STAT_FILE3(g_storage_stat.total_truncate_count, g_storage_stat.success_truncate_count, g_storage_stat);
         } else {
             g_storage_stat.total_truncate_count.increment();
         }
@@ -833,7 +831,7 @@ public class StorageServiceDoneCallback {
         if (result != 0) {
             g_storage_stat.total_set_meta_count.increment();
         } else {
-            CHECK_AND_WRITE_TO_STAT_FILE3(g_storage_stat.total_set_meta_count, g_storage_stat.success_set_meta_count, g_storage_stat.last_source_update);
+            CHECK_AND_WRITE_TO_STAT_FILE3(g_storage_stat.total_set_meta_count, g_storage_stat.success_set_meta_count, g_storage_stat);
         }
         STORAGE_ACCESS_LOG(pClientInfo, ACCESS_LOG_ACTION_SET_METADATA, result);
         pClientInfo.write(StorageServiceHelper.getHeadSetStateFromBufferPool(pClientInfo, result));
@@ -1178,4 +1176,6 @@ public class StorageServiceDoneCallback {
 
         return 0;
     }
+
+
 }

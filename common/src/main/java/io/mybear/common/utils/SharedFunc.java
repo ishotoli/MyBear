@@ -21,9 +21,22 @@ public class SharedFunc {
         return false;
     }
 
+    /**
+     * @param fileName
+     * @return
+     */
     public static boolean delete(String fileName) {
         File file = new File(fileName);
         return file.delete();
+    }
+
+    /**
+     *
+     * @param fileName
+     * @return
+     */
+    public static boolean unlink(String fileName) {
+        return delete(fileName);
     }
 
     /**

@@ -632,7 +632,7 @@ public abstract class Connection implements ClosableConnection {
                             toFix();
                             continue;
                         } else {
-                            readBuffer.position(0);
+                            readBuffer.position(0);//清空数据
                             readBuffer.limit((int) (length - offset));
                             packetState = PacketState.packet;
                             needReadChannel = true;
@@ -649,7 +649,7 @@ public abstract class Connection implements ClosableConnection {
                     return;
                 } else {
                     parserHandler.handle(this, readBuffer);
-                    readBuffer.position(0);
+                    readBuffer.position(0);//清空数据
                     continue;
                 }
             } else if (packetState == fix) {

@@ -16,6 +16,7 @@ public interface ParserHandler<T, U> {
     UploadSlaveFileParserHandler UPLOAD_SLAVE_FILE_PARSER_HANDLER = new UploadSlaveFileParserHandler();
     GetMetaDataParserHandler GET_META_DATA_PARSER_HANDLER = new GetMetaDataParserHandler();
     ActiveTestParserHandler ACTIVE_TEST = new ActiveTestParserHandler();
+    QueryFileInfoHandler QUERY_FILE_INFO = new QueryFileInfoHandler();
     static ParserHandler getParserHandler(int cmd) {
         switch (cmd) {
             case STORAGE_PROTO_CMD_DOWNLOAD_FILE:
@@ -32,6 +33,8 @@ public interface ParserHandler<T, U> {
                 return UPLOAD_SLAVE_FILE_PARSER_HANDLER;
             case FDFS_PROTO_CMD_ACTIVE_TEST:
                 return ACTIVE_TEST;
+            case STORAGE_PROTO_CMD_QUERY_FILE_INFO:
+                return QUERY_FILE_INFO;
             default:
                 return null;
         }

@@ -137,4 +137,5 @@ public class CommonConstant {
     public static final int CHECK_ACTIVE_DEF_INTERVAL = 100;
     public static final int DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY = 86400;
     public static final int DEFAULT_STORAGE_SYNC_FILE_MAX_TIME = 300;
+    public static final int STORAGE_STATUE_DEAL_FILE = 123456;   //status for read or write file
 }

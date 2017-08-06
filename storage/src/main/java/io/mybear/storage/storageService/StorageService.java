@@ -58,8 +58,8 @@ public class StorageService {
         StorageFileContext pFileContext;
         char[] p;
         FDFSTrunkHeader trunkHeader = null;
-        char[] group_name = new char[CommonConstant.FDFS_GROUP_NAME_MAX_LEN];
-        char[] true_filename = new char[128];
+        byte[] group_name = new byte[CommonConstant.FDFS_GROUP_NAME_MAX_LEN];
+        byte[] true_filename = new byte[128];
         char[] filename;
         int filename_len;
         int true_filename_len;
@@ -100,20 +100,20 @@ public class StorageService {
         filename_len = (int) (nInPackLen - CommonConstant.FDFS_GROUP_NAME_MAX_LEN);
         STORAGE_ACCESS_STRCPY_FNAME2LOG(new String(filename), pClientInfo);
         true_filename_len = filename_len;
-        if ((store_path_index = StringUtil.storage_split_filename_ex(filename, true_filename_len, true_filename)) < 0) {
+        if ((store_path_index = StringUtil.storage_split_filename_ex(filename, true_filename_len, StringUtil.byte2char(true_filename))) < 0) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask), "获取文件名错误!");
             return;
         }
         true_filename_len -= 4;
-        if ((result = FdfsGlobal.fdfs_check_data_filename(true_filename, true_filename_len)) != 0) {
+        if ((result = FdfsGlobal.fdfs_check_data_filename(StringUtil.byte2char(true_filename), true_filename_len)) != 0) {
             return;
         }
         char[] true_filename_bak = new char[true_filename_len];
         System.arraycopy(true_filename, 0, true_filename_bak, 0, true_filename_len);
         // 像这样的数据 CD/00/wKi0hVjqXGeAcyFfAAGSt-FxG-0872.jpg
-        true_filename = true_filename_bak;
+        true_filename = StringUtil.char2byte(true_filename_bak);
         StorageUploadInfo upload = (StorageUploadInfo) pFileContext.extra_info;
-        if ((result = StringUtil.trunk_file_lstat(store_path_index, true_filename, true_filename_len, stat_buf,
+        if ((result = TrunkShared.trunk_file_lstat(store_path_index, true_filename, true_filename_len, stat_buf,
                 upload.getTrunkInfo(), trunkHeader)) != 0) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
                     String.format("获取文件名错误! %s", new String(true_filename)));
@@ -131,11 +131,11 @@ public class StorageService {
                             pFileContext.filename));
             return;
         }
-        if (StringUtil.IS_TRUNK_FILE_BY_ID(upload.getTrunkInfo())) {
+        if (TrunkShared.IS_TRUNK_FILE_BY_ID(upload.getTrunkInfo())) {
             upload.setFileType((char) (upload.getFileType() | StorageDio._FILE_TYPE_TRUNK));
             pClientInfo.dealFunc = StorageDio::dio_delete_trunk_file;
             char[] file_name = pFileContext.filename.toCharArray();
-            file_name = StringUtil.trunk_get_full_filename(upload.getTrunkInfo(), file_name,
+            file_name = TrunkShared.trunk_get_full_filename(upload.getTrunkInfo(), file_name,
                     pFileContext.filename.length());
             pFileContext.filename = new String(file_name);
         } else {

@@ -1,5 +1,6 @@
 package io.mybear.storage.storageService;
 
+import io.mybear.common.FDFSStorageStat;
 import io.mybear.common.ThrowingConsumer;
 import io.mybear.common.constants.SizeOfConstant;
 import io.mybear.common.constants.config.FdfsGlobal;
@@ -7,6 +8,8 @@ import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.StorageUploadInfo;
 import io.mybear.storage.storageNio.StorageClientInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,16 +18,19 @@ import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 
+import static io.mybear.common.constants.CommonConstant.STORAGE_STATUE_DEAL_FILE;
 import static io.mybear.common.constants.ErrorNo.ENOENT;
 import static io.mybear.common.constants.SizeOfConstant.SIZE_OF_TRACKER_HEADER;
 import static io.mybear.common.constants.TrackerProto.TRACKER_PROTO_CMD_RESP;
-import static io.mybear.common.constants.config.StorageGlobal.STORAGE_FILE_SIGNATURE_METHOD_HASH;
-import static io.mybear.common.constants.config.StorageGlobal.g_file_signature_method;
+import static io.mybear.common.constants.config.StorageGlobal.*;
+import static io.mybear.storage.FdfsStoraged.g_current_time;
 
 /**
  * Created by jamie on 2017/8/1.
  */
 public class StorageServiceHelper {
+
+    public static final Logger log = LoggerFactory.getLogger(StorageServiceHelper.class);
     public static ByteBuffer getHeadFromBufferPool(StorageClientInfo pClientInfo, long size) {
         return pClientInfo.getMyBufferPool().allocateByteBuffer().putLong(size).put(TRACKER_PROTO_CMD_RESP).put((byte) 0);
     }
@@ -207,52 +213,36 @@ public class StorageServiceHelper {
 
 
     public static void CHECK_AND_WRITE_TO_STAT_FILE2(LongAdder total_count, LongAdder success_count) {
-//
-//        pthread_mutex_lock( & stat_count_thread_lock); \
-//        total_count++; \
-//        success_count++; \
-//        ++g_stat_change_count; \
-//
-//        pthread_mutex_unlock( & stat_count_thread_lock);
+        total_count.increment();
+        success_count.increment();
+        g_stat_change_count.increment();
     }
 
     public static void CHECK_AND_WRITE_TO_STAT_FILE2_WITH_BYTES(LongAdder total_count, LongAdder success_count,
                                                                 LongAdder total_bytes, LongAdder success_bytes, long bytes) {
-//
-//        pthread_mutex_lock( & stat_count_thread_lock); \
-//        total_count++; \
-//        success_count++; \
-//        total_bytes += bytes; \
-//        success_bytes += bytes; \
-//        ++g_stat_change_count; \
-//
-//        pthread_mutex_unlock( & stat_count_thread_lock);
+        total_count.increment();
+        success_count.increment();
+        total_bytes.add(bytes);
+        success_bytes.add(bytes);
+        g_stat_change_count.increment();
     }
 
-    public static void CHECK_AND_WRITE_TO_STAT_FILE3(LongAdder total_count, LongAdder success_count, long timestamp) {
-//
-//        pthread_mutex_lock( & stat_count_thread_lock); \
-//        total_count++; \
-//        success_count++; \
-//        timestamp = g_current_time; \
-//        ++g_stat_change_count;  \
-//
-//        pthread_mutex_unlock( & stat_count_thread_lock);
+    public static void CHECK_AND_WRITE_TO_STAT_FILE3(LongAdder total_count, LongAdder success_count, FDFSStorageStat storageStat) {
+        total_count.increment();
+        success_count.increment();
+        storageStat.last_source_update = g_current_time;
+        g_stat_change_count.increment();
     }
 
 
     public static void CHECK_AND_WRITE_TO_STAT_FILE3_WITH_BYTES(LongAdder total_count, LongAdder success_count,
-                                                                long timestamp, LongAdder total_bytes, LongAdder success_bytes, long bytes) {
-//
-//        pthread_mutex_lock( & stat_count_thread_lock); \
-//        total_count++; \
-//        success_count++; \
-//        timestamp = g_current_time; \
-//        total_bytes += bytes; \
-//        success_bytes += bytes; \
-//        ++g_stat_change_count;  \
-//
-//        pthread_mutex_unlock( & stat_count_thread_lock);
+                                                                FDFSStorageStat timestamp, LongAdder total_bytes, LongAdder success_bytes, long bytes) {
+        total_count.increment();
+        success_count.increment();
+        timestamp.last_source_update = g_current_time;
+        total_bytes.add(bytes);
+        success_bytes.add(bytes);
+        g_stat_change_count.increment();
     }
 
     public static void storage_log_access_log(StorageClientInfo pTask, String action, final int status) {
@@ -275,41 +265,30 @@ public class StorageServiceHelper {
 
 
     public static void STORAGE_ACCESS_STRCPY_FNAME2LOG(String filename, StorageClientInfo pClientInfo) {
-//
-//        do \
-//
-//    { \
-//        if (g_use_access_log) \
-//        { \
-//            if (filename_len < sizeof(pClientInfo -> \
-//                    file_context.fname2log)) \
-//            { \
-//                memcpy(pClientInfo -> file_context.fname2log, \
-//                        filename, filename_len + 1); \
-//            } \
-//            else \
-//            { \
-//                memcpy(pClientInfo -> file_context.fname2log, \
-//                        filename, sizeof(pClientInfo -> \
-//                                file_context.fname2log)); \
-//                *(pClientInfo -> file_context.fname2log + \
-//                sizeof(pClientInfo -> file_context. \
-//                        fname2log) - 1) ='\0'; \
-//            } \
-//        } \
-//    } while(0)
+        if (g_use_access_log) {
+//            if (filename_len < sizeof(pClientInfo.fileContext.fname2log.length()))
+//            {
+//                memcpy(pClientInfo.fileContext.fname2log,
+//                        filename, filename_len + 1);
+//            }
+//            else
+//            {
+//                memcpy(pClientInfo -> file_context.fname2log,
+//                        filename, sizeof(pClientInfo ->
+//                                file_context.fname2log));
+//                *(pClientInfo -> file_context.fname2log +
+//                sizeof(pClientInfo -> file_context.
+//                        fname2log) - 1) ='\0';
+//            }
+        }
+
     }
 
 
     public static void STORAGE_ACCESS_LOG(StorageClientInfo pClientInfop, String action, int status) {
-//        do \
-//
-//        { \
-//            if (g_use_access_log && (status != STORAGE_STATUE_DEAL_FILE)) \
-//            { \
-//                storage_log_access_log(pTask, action, status); \
-//            } \
-//        } while (0)
+        if (g_use_access_log && (status != STORAGE_STATUE_DEAL_FILE)) {
+            storage_log_access_log(pClientInfop, action, status);
+        }
     }
 
     public static int storage_sync_copy_file_rename_filename(StorageFileContext pFileContext) {
@@ -344,19 +323,11 @@ public class StorageServiceHelper {
     }
 
     public static final void STORAGE_STAT_FILE_FAIL_LOG(int result, String client_ip, String type_caption, String filename) {
-//        if (result == ENOENT) \
-//        { \
-//            logWarning("file: "__FILE__", line: %d, " \
-//                    "client ip: %s, %s file: %s not exist", \
-//                    __LINE__, client_ip, type_caption, filename); \
-//        } \
-//            else \
-//        { \
-//            logError("file: "__FILE__", line: %d, " \
-//                    "call stat fail, client ip: %s, %s file: %s, "\
-//                    "error no: %d, error info: %s", __LINE__, client_ip, \
-//                    type_caption, filename, result, STRERROR(result)); \
-//        }
+        if (result == ENOENT) {
+            log.warn("client ip: %s, %s file: %s not exist", client_ip, type_caption, filename);
+        } else {
+            log.warn("call stat fail, client ip: %s, %s file: %s, ", client_ip, type_caption, filename, result);
+        }
     }
 
     public static void STORAGE_NIO_NOTIFY_CLOSE(StorageClientInfo pTask) {

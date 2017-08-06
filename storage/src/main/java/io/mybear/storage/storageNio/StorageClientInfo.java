@@ -3,6 +3,7 @@ package io.mybear.storage.storageNio;
 import io.mybear.common.FDFSStorageServer;
 import io.mybear.common.ThrowingConsumer;
 import io.mybear.common.constants.config.StorageGlobal;
+import io.mybear.common.utils.TimeUtil;
 import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.StorageSetMetaInfo;
 import io.mybear.storage.StorageUploadInfo;
@@ -12,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import static io.mybear.common.constants.config.StorageGlobal.g_storage_stat;
+import static io.mybear.common.constants.config.StorageGlobal.g_use_access_log;
 
 /**
  * Created by jamie on 2017/6/21.
@@ -26,8 +28,8 @@ public class StorageClientInfo extends Connection implements Runnable, Serializa
     public boolean canceled;
     public int stage;  //nio stage, send or recv
     public byte[] storageServerId = new byte[FDFS_STORAGE_ID_MAX_SIZE];
-
     public StorageFileContext fileContext;
+    public StringBuilder context;
 
     public long totalLength;   //pkg total length for req and request
     public long totalOffset;   //pkg current offset for req and request
@@ -115,5 +117,16 @@ public class StorageClientInfo extends Connection implements Runnable, Serializa
     public void run() {
         if (dealFunc != null)
             dealFunc.accept(this);
+    }
+
+    /**
+     * ACCESS_LOG_INIT_FIELDS
+     */
+    public void ACCESS_LOG_INIT_FIELDS() {
+        if (g_use_access_log && this.fileContext != null) {
+            this.fileContext.fname2log = "-";
+            this.requestLength = this.totalLength;
+            this.fileContext.tvDealStart = TimeUtil.currentTimeMillis();
+        }
     }
 }
