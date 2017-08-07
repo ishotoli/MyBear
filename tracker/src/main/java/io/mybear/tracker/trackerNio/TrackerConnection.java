@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 
 public class TrackerConnection extends Connection {
 
@@ -107,7 +108,28 @@ public class TrackerConnection extends Connection {
         this.enableWrite(true);
     }
 
-    public TrackerByteBufferArray getWriteBufferArray() {
+    public ByteBuffer getAvailableWriteByteBuffer() {
+        if (writeBufferArray == null) {
+            writeBufferArray = getMyBufferPool().allocateTrackerByteBufferArray();
+        }
+        List<ByteBuffer> buffers = writeBufferArray.getWritedBlockLst();
+        int size = buffers.size();
+        if (size == 0) {
+            writeBufferArray.addNewBuffer();
+        } else if (size == 1) {
+        } else {
+            //回收多余Bytebuffer
+            ReactorBufferPool pool = this.getMyBufferPool();
+            for (int i = 1; i < size; i++) {
+                pool.recycle(buffers.get(i));
+            }
+        }
+        ByteBuffer byteBuffer = buffers.get(0);
+        byteBuffer.clear();
+        return byteBuffer;
+    }
+
+    public TrackerByteBufferArray getAvailableWriteBufferArray() {
         if (writeBufferArray == null) {
             writeBufferArray = getMyBufferPool().allocateTrackerByteBufferArray();
             writeBufferArray.addNewBuffer();

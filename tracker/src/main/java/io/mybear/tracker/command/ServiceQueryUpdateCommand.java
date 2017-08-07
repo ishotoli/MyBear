@@ -28,7 +28,7 @@ public class ServiceQueryUpdateCommand extends TrackerCommand {
         byte[] bytes = message.getRestByteArray();
         String fileName = new String(bytes);
         logger.debug("fileName:" + fileName);
-        ByteBuffer res = buildHeader(conn.getWriteBufferArray().getLastByteBuffer(), 0, TrackerProto.TRACKER_PROTO_CMD_RESP, 0);
+        ByteBuffer res = buildHeader(conn.getAvailableWriteByteBuffer(), 0, TrackerProto.TRACKER_PROTO_CMD_RESP, 0);
         res.position(26);
         ProtocolUtil.setIP(res, "127.0.0.1");
         ProtocolUtil.setPort(res, 23000);

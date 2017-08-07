@@ -36,7 +36,7 @@ public class ServiceQueryStoreWithGroupOneCommand extends TrackerCommand {
         int resIndex = 0;
         String groupName = ProtocolUtil.getGroupName(message.getData().getLastByteBuffer());
         logger.debug("groupName:" + groupName);
-        ByteBuffer res = buildHeader(conn.getWriteBufferArray().getLastByteBuffer(), 40, TrackerProto.TRACKER_PROTO_CMD_RESP, 0);
+        ByteBuffer res = buildHeader(conn.getAvailableWriteByteBuffer(), 40, TrackerProto.TRACKER_PROTO_CMD_RESP, 0);
         ProtocolUtil.setIP(res, resIp);
         ProtocolUtil.setPort(res, resPort);
         ProtocolUtil.setStorePathIndex(res, resIndex);
