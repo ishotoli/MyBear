@@ -1,8 +1,27 @@
 package io.mybear.common.tracker;
 
-import io.mybear.common.constants.CommonConstant;
+import static io.mybear.common.constants.CommonConstant.*;
+import static io.mybear.common.constants.TrackerProto.FDFS_PROTO_PKG_LEN_SIZE;
 
 public class FdfsStorageJoinBody {
+
+    //    ByteBuffer toByteBuffer(ByteBuffer buffer){
+//
+//    }
+    public final static int SIZE =
+            4 * (FDFS_GROUP_NAME_MAX_LEN + 1)//	char groupName[FDFS_GROUP_NAME_MAX_LEN+1];
+                    + 4 * (FDFS_PROTO_PKG_LEN_SIZE)//char storage_port[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE//storage_http_port[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE//store_path_count[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE//subdir_count_per_path[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE//char upload_priority[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE//join_time[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE//up_time[FDFS_PROTO_PKG_LEN_SIZE];
+                    + 4 * FDFS_VERSION_SIZE//version[FDFS_VERSION_SIZE];
+                    + 4 * FDFS_DOMAIN_NAME_MAX_SIZE//domain_name
+                    + 4//init_flag
+                    + 4 //status
+                    + 4 * FDFS_PROTO_PKG_LEN_SIZE;//tracker_count[FDFS_PROTO_PKG_LEN_SIZE];
     private int storagePort;
     private int storageHttpPort;
     private int storePathCount;
@@ -11,9 +30,9 @@ public class FdfsStorageJoinBody {
     private int joinTime;
     private int upTime;
 
-    private byte[] version = new byte[CommonConstant.FDFS_VERSION_SIZE];
-    private byte[] groupName = new byte[CommonConstant.FDFS_GROUP_NAME_MAX_LEN + 1];
-    private byte[] domainName = new byte[CommonConstant.FDFS_DOMAIN_NAME_MAX_SIZE];
+    private byte[] version = new byte[FDFS_VERSION_SIZE];
+    private byte[] groupName = new byte[FDFS_GROUP_NAME_MAX_LEN + 1];
+    private byte[] domainName = new byte[FDFS_DOMAIN_NAME_MAX_SIZE];
 
     private byte initFlag;
     private byte state;

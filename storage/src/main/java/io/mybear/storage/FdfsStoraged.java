@@ -229,18 +229,18 @@ public class FdfsStoraged {
             if (result != 0) {
                 break;
             }
-            pGroupName = iniContext.getStrValue("group_name");
+            pGroupName = iniContext.getStrValue("groupName");
             if (pGroupName == null) {
                 result = storageGetGroupNameFromTracker();
                 if (result == 0) {
-                    LOGGER.info("get group name from tracker server, group_name: %s", g_group_name);
+                    LOGGER.info("get group name from tracker server, groupName: %s", g_group_name);
                 } else {
-                    LOGGER.error("conf file \"%s\" must have item \"group_name\"!", filename);
+                    LOGGER.error("conf file \"%s\" must have item \"groupName\"!", filename);
                     result = -1;
                     break;
                 }
             } else if ("".equals(pGroupName.trim())) {
-                LOGGER.error("conf file \"%s\", group_name is empty!", filename);
+                LOGGER.error("conf file \"%s\", groupName is empty!", filename);
                 result = -1;
                 break;
             } else {
@@ -576,7 +576,7 @@ public class FdfsStoraged {
 
 
 //            String g_client_bind_addr = iniContext.getStrValue("client_bind");
-//            String pGroupName = iniContext.getStrValue("group_name");
+//            String pGroupName = iniContext.getStrValue("groupName");
 //            String pRunByGroup = iniContext.getStrValue("run_by_group");
 //            String pRunByUser = iniContext.getStrValue("run_by_user");
 //            String pFsyncAfterWrittenBytes = iniContext.getStrValue("fsync_after_written_bytes");

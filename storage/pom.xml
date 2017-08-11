@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>mybear-storage</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>io.mycat</groupId>
@@ -18,7 +18,7 @@
         </dependency>
         <dependency>
             <groupId>io.mycat</groupId>
-            <artifactId>mybear-trunkmanager</artifactId>
+            <artifactId>mybear-trunkMgr</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>

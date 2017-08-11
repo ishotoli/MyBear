@@ -12,9 +12,9 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="tracker" />
+    <orderEntry type="module" module-name="mybear-common" />
     <orderEntry type="module" module-name="storage" />
     <orderEntry type="module" module-name="trunkMgr" />
-    <orderEntry type="module" module-name="mybear-common" />
     <orderEntry type="module-library">
       <library name="Maven: org.csource:fastdfs-client-java:1.27-SNAPSHOT">
         <CLASSES>

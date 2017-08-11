@@ -92,7 +92,7 @@ public class StorageService {
         String groupName = new String(group_name);
         if (!groupName.equals(StorageGlobal.g_group_name)) {
             log.error(CommonConstant.LOG_FORMAT, "storageServerDeleteFile", JSON.toJSONString(pTask),
-                    String.format("client ip:%s, group_name: %s,not correct, should be: %s", pTask.getHost(), groupName, StorageGlobal.g_group_name));
+                    String.format("client ip:%s, groupName: %s,not correct, should be: %s", pTask.getHost(), groupName, StorageGlobal.g_group_name));
             return;
         }
         filename = new char[p.length - CommonConstant.FDFS_GROUP_NAME_MAX_LEN];

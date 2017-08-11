@@ -25,7 +25,7 @@ public class GetMetaDataParserHandler implements ParserHandler<StorageClientInfo
     /**
      * pkg format:
      * Header
-     * FDFS_GROUP_NAME_MAX_LEN bytes: group_name
+     * FDFS_GROUP_NAME_MAX_LEN bytes: groupName
      * filename
      **/
     @Override
@@ -36,7 +36,7 @@ public class GetMetaDataParserHandler implements ParserHandler<StorageClientInfo
         nioData.get(group_name);
         nioData.position(0);
         if (!Arrays.equals(group_name, g_group_name)) {
-            con.close("group_name 不对应");
+            con.close("groupName 不对应");
         }
         System.out.println("groupName:" + new String(group_name));
         StorageFileContext fileContext = con.makeStorageFileContext();

@@ -19,8 +19,9 @@ public class StorageSetMetaDataTest {
         metaList[0] = new NameValuePair("fileName", "myname");
         metaList[1] = new NameValuePair("fileExtName", "myextn");
         metaList[2] = new NameValuePair("fileLength", String.valueOf(120));
-        client.set_metadata(group_name, remote_filename, metaList, (byte) 0);
-        client.set_metadata1("/data/0C/0D/AAAAAF6ihAmAAAAIAAD5SAAB4kAexe", metaList, (byte) 0);
-
+        for (int i = 0; i < 100; i++) {
+            client.set_metadata(group_name, remote_filename, metaList, (byte) 0);
+            client.set_metadata1("/data/0C/0D/AAAAAF6ihAmAAAAIAAD5SAAB4kAexe", metaList, (byte) 0);
+        }
     }
 }

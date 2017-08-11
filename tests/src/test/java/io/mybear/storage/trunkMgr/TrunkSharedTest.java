@@ -19,4 +19,5 @@ public class TrunkSharedTest {
                 TrunkShared.TRUNK_GET_FILENAME(12));
         System.out.println(fullFileName);
     }
+
 }

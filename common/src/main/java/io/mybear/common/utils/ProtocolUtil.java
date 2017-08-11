@@ -9,8 +9,8 @@ import static io.mybear.common.constants.TrackerProto.TRACKER_PROTO_CMD_RESP;
  * Created by jamie on 2017/7/22.
  */
 public class ProtocolUtil {
-    public static ByteBuffer buildHeader(long len, byte cmd, int state) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate((int) (len + 10)).putLong(0, len + 10).put(cmd).put((byte) state);
+    public static ByteBuffer buildHeader(long len, int cmd, int state) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate((int) (len + 10)).putLong(0, len + 10).put((byte) cmd).put((byte) state);
         byteBuffer.position(10);
         return byteBuffer;
     }

@@ -97,6 +97,10 @@ public class TrunkMem {
         if (que != null) {
             que.add(trunkFullInfo);
         } else {
+            /*
+            在PriorityQueue类实现Iterable<E>和Collection<E>接口，因此它可以重复如常。
+            但是迭代器不能保证以排序顺序返回元素。相反（正如Alderath在评论中指出的那样），你需要poll()排队到空。
+             */
             que = new LinkedList<>();
             que.add(trunkFullInfo);
         }

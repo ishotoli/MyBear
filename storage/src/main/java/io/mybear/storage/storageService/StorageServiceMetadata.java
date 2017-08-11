@@ -3,7 +3,6 @@ package io.mybear.storage.storageService;
 import io.mybear.common.constants.config.StorageGlobal;
 import io.mybear.common.trunk.TrunkShared;
 import io.mybear.common.utils.*;
-import io.mybear.storage.StorageDio;
 import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.StorageSetMetaInfo;
 import io.mybear.storage.StorageUploadInfo;
@@ -27,6 +26,7 @@ import static io.mybear.common.constants.config.StorageGlobal.g_check_file_dupli
 import static io.mybear.common.constants.config.StorageGlobal.g_storage_stat;
 import static io.mybear.storage.FdfsStoraged.g_current_time;
 import static io.mybear.storage.storageService.StorageService.ACCESS_LOG_ACTION_SET_METADATA;
+import static io.mybear.storage.storageService.StorageServiceHelper.log;
 import static io.mybear.storage.storageService.StorageServiceHelper.storage_log_access_log;
 import static io.mybear.storage.storageSync.StorageSync.*;
 
@@ -38,7 +38,7 @@ public class StorageServiceMetadata {
 
     public static int storage_do_set_metadata(StorageClientInfo clientInfo) {
         StorageFileContext fileContext = clientInfo.fileContext;
-        StorageSetMetaInfo setmeta = (StorageSetMetaInfo) clientInfo.extraArg;
+        StorageSetMetaInfo setmeta = (StorageSetMetaInfo) fileContext.extra_info;
         List<String[]> list = MetadataUtil.splitMetadata(setmeta.metaBuff);
         StringBuilder stringBuilder = new StringBuilder();
         fileContext.syncFlag = '\0';
@@ -93,7 +93,7 @@ public class StorageServiceMetadata {
                         break;
                     }
                     fileContext.syncFlag = STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
-                    Files.write(filename, metaBuff.toString().getBytes(), StandardOpenOption.APPEND);
+                    Files.write(filename, metaBuff.toString().getBytes(), StandardOpenOption.CREATE_NEW);
                     break;
                 } else {
                     try {
@@ -175,6 +175,7 @@ public class StorageServiceMetadata {
                     break;
                 }
                 fileContext.syncFlag = STORAGE_OP_TYPE_SOURCE_UPDATE_FILE;
+                log.debug("storage_do_set_metadata:" + filename);
                 try {
                     Files.write(filename, all_meta_buff.toString().getBytes(), StandardOpenOption.APPEND);
                 } catch (Exception e) {
@@ -213,7 +214,6 @@ public class StorageServiceMetadata {
         ProtocolUtil.buildHeader(byteBuffer, 0, (byte) STORAGE_PROTO_CMD_RESP, result);
         con.write(byteBuffer);
         storage_log_access_log(con, ACCESS_LOG_ACTION_SET_METADATA, result);
-        StorageDio.nioNotify(con);
         return 0;
     }
 

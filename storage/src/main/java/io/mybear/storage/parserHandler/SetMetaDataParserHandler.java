@@ -5,6 +5,7 @@ import io.mybear.common.utils.FilenameResultEx;
 import io.mybear.common.utils.StringUtil;
 import io.mybear.common.utils.TimeUtil;
 import io.mybear.storage.StorageDio;
+import io.mybear.storage.StorageFileContext;
 import io.mybear.storage.StorageSetMetaInfo;
 import io.mybear.storage.storageNio.StorageClientInfo;
 import io.mybear.storage.storageService.StorageServiceMetadata;
@@ -32,6 +33,7 @@ public class SetMetaDataParserHandler implements ParserHandler<StorageClientInfo
         byte[] group_name = new byte[16];
         nioData.get(group_name);
         nioData.position(0);
+        con.fileContext = new StorageFileContext();
         con.makeMetaInfo((int) filenameLen, (int) (filenameLen + meta_buff_length));
         System.out.println("groupName:" + new String(group_name));
         return 0;
@@ -47,6 +49,7 @@ public class SetMetaDataParserHandler implements ParserHandler<StorageClientInfo
         con.appendMetaInfo(nioData);
         StorageSetMetaInfo metaInfo = con.getMetaInfo();
         String filename = metaInfo.metaBuff.substring(0, metaInfo.filenameLength);
+        metaInfo.metaBuff = new StringBuilder(metaInfo.metaBuff.substring(metaInfo.filenameLength));
         FilenameResultEx resultEx = StringUtil.storage_split_filename_ex(filename);
         int store_path_index = resultEx.storePathIndex;
         String true_filename = resultEx.true_filename;

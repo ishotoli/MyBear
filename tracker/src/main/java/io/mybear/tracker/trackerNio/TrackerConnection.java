@@ -29,7 +29,7 @@ public class TrackerConnection extends Connection {
         TrackerClientInfo clientInfo = new TrackerClientInfo();
         clientInfo.setGroup(new FdfsGroupInfo());
         clientInfo.setStorage(new FdfsStorageDetail());
-        clientInfo.getStorage().setState(new FdfsStorageStat());
+        clientInfo.getStorage().state = new FdfsStorageStat();
         this.clientInfo = clientInfo;
         // for test
     }

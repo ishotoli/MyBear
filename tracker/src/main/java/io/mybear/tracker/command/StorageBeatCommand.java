@@ -17,7 +17,7 @@ public class StorageBeatCommand extends TrackerCommand {
         logger.debug("deal with storage beat.");
 
         FdfsStorageDetail storageServer = conn.getClientInfo().getStorage();
-        FdfsStorageStat storageStat = storageServer.getState();
+        FdfsStorageStat storageStat = storageServer.state;
         byte state = 0;
 
         if (message.getPkgLen() == STORAGE_BEAT_PACKET_LENGTH) {

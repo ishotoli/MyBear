@@ -13,6 +13,7 @@ public interface ThrowingConsumer<T> extends Consumer<T> {
             // Implement your own exception handling logic here..
             // For example:
             System.out.println("handling an exception...");
+            e.printStackTrace();
             // Or ...
             throw new RuntimeException(e);
         }

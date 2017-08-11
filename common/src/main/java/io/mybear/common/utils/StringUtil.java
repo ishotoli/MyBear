@@ -46,7 +46,7 @@ public class StringUtil {
         FilenameResultEx filenameResult = new FilenameResultEx();
         char[] true_filename = new char[128];
         filenameResult.storePathIndex = SPLIT_FILENAME_BODY(logic_filename.toCharArray(), logic_filename.length(), true_filename, true);
-        filenameResult.true_filename = new String(true_filename);
+        filenameResult.true_filename = new String(true_filename).trim();
         return filenameResult;
     }
 

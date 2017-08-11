@@ -19,6 +19,7 @@ public class StorageGlobal {
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageGlobal.class);
     public static Path exeName;
     public static String BASE_PATH;
+    public static boolean g_continue_flag = true;
     public static int STORAGE_BEAT_DEF_INTERVAL = 30;
     public static int STORAGE_REPORT_DEF_INTERVAL = 300;
     public static int STORAGE_DEF_SYNC_WAIT_MSEC = 100;
@@ -55,7 +56,7 @@ public class StorageGlobal {
     public static int g_dist_write_file_count; //current write file count
     public static int g_storage_count;  //stoage server count in my group
     public static FDFSStorageServer[] g_storage_servers;
-    public static int g_tracker_reporter_count;
+    public static volatile int g_tracker_reporter_count;
     public static int g_heart_beat_interval;
     public static int g_stat_report_interval;
     public static int g_sync_wait_usec;
@@ -110,6 +111,7 @@ public class StorageGlobal {
     public static long g_up_time;
     public static FdfsStorePathInfo[] g_path_space_list;
     public static IniFileReader iniReader;
+
     public static void init(String conf_filename) throws IOException {
         iniReader = new IniFileReader(conf_filename);
         BASE_PATH = iniReader.getStrValue("base_path");
