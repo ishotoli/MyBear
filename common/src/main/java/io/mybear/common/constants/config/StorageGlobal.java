@@ -42,7 +42,7 @@ public class StorageGlobal {
     public static int g_max_connections;
     public static int g_accept_threads;
     public static int g_work_threads;
-    public static long g_buff_size;
+    public static int g_buff_size;
     public static boolean g_disk_rw_direct;     //if file read / write directly
     public static boolean g_disk_rw_separated;  //if disk read / write separated
     public static int g_disk_reader_threads; //disk reader thread count per store base path

@@ -1,7 +1,7 @@
 package io.mybear.common.tracker;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * @author Yangll
@@ -14,8 +14,8 @@ public class FdfsGroups {
     private int count; //group count
 
     private List<FdfsGroupInfo> groups;
-    private List<FdfsGroupInfo> sortedGroups; //groups order by groupName
-    private FdfsGroupInfo pStroreGroup; //the group to store uploaded files
+    private TreeMap<String, FdfsGroupInfo> sortedGroups = new TreeMap<>(); //groups order by groupName
+    private List<FdfsGroupInfo> pStroreGroup; //the group to store uploaded files
 
     private int currentWriteGroup; //current group index to upload file
     private byte storeLookup; //store to which group, from conf file
@@ -31,24 +31,27 @@ public class FdfsGroups {
      * @return
      */
     public FdfsGroupInfo getGroup(String group_name) {
-        FdfsGroupInfo target = new FdfsGroupInfo();
-        target.setGroupName(group_name.trim());
-        int res = Collections.binarySearch(this.getSortedGroups(), target);
-        return res != -1 ? this.getSortedGroups().get(res) : null;
+        return sortedGroups.get(group_name);
     }
 
     /**
-     * insert_into_sorted_groups
+     * static void tracker_mem_insert_into_sorted_groups(FDFSGroups *pGroups, \
      *
      * @param
      * @return
      */
-    public void insert_into_sorted_groups(FdfsGroupInfo pTargetGroup) {
-        sortedGroups.add(pTargetGroup);
-        sortedGroups.sort(FdfsGroupInfo::compareTo);
-        //todo 性能需要优化
+    public void insertIntoSortedGroups(FdfsGroupInfo pTargetGroup) {
+        sortedGroups.put(pTargetGroup.getGroupName(), pTargetGroup);
     }
 
+
+    /**
+     * tracker_mem_insert_into_sorted_servers
+     */
+    public void insertIntoSortedServers(List<FdfsStorageDetail> list, FdfsStorageDetail pTargetServer) {
+        list.add(pTargetServer);
+        list.sort(FdfsStorageDetail::cmpByStorageId);
+    }
 
     /**
      * tracker_mem_destroy_groups
@@ -59,6 +62,7 @@ public class FdfsGroups {
     public void destroy(boolean saveFiles) {
 
     }
+
     public int getAllocSize() {
         return allocSize;
     }
@@ -83,21 +87,6 @@ public class FdfsGroups {
         this.groups = groups;
     }
 
-    public List<FdfsGroupInfo> getSortedGroups() {
-        return sortedGroups;
-    }
-
-    public void setSortedGroups(List<FdfsGroupInfo> sortedGroups) {
-        this.sortedGroups = sortedGroups;
-    }
-
-    public FdfsGroupInfo getpStroreGroup() {
-        return pStroreGroup;
-    }
-
-    public void setpStroreGroup(FdfsGroupInfo pStroreGroup) {
-        this.pStroreGroup = pStroreGroup;
-    }
 
     public int getCurrentWriteGroup() {
         return currentWriteGroup;

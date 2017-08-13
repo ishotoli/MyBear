@@ -89,6 +89,17 @@ public class BasicTypeConversionUtil {
                 ((long) (buff[7])));
     }
 
+    public static long buff2long(final byte[] buff) {
+        return (int) (((long) (buff[0]) << 56) |
+                ((long) (buff[1]) << 48) |
+                ((long) (buff[2]) << 40) |
+                ((long) (buff[3]) << 32) |
+                ((long) (buff[4]) << 24) |
+                ((long) (buff[5]) << 16) |
+                ((long) (buff[6]) << 8) |
+                ((long) (buff[7])));
+    }
+
     public static long buff2long(final char[] buff, int flag) {
         return (int) (((long) (buff[flag++]) << 56) |
                 ((long) (buff[flag++]) << 48) |

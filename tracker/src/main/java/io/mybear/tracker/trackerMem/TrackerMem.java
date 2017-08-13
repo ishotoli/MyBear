@@ -105,4 +105,29 @@ public class TrackerMem {
 //
 //        return result;
 //    }
+
+//    static void tracker_mem_insert_into_sorted_servers(
+//            FdfsStorageDetail pTargetServer,
+//           List< FdfsStorageDetail> sorted_servers, const int count)
+//    {
+//        FDFSStorageDetail **ppServer;
+//        FDFSStorageDetail **ppEnd;
+//
+//        ppEnd = sorted_servers + count;
+//        for (ppServer=ppEnd; ppServer>sorted_servers; ppServer--)
+//        {
+//            if (strcmp(pTargetServer->id, (*(ppServer-1))->id) > 0)
+//            {
+//                break;
+//            }
+//		else
+//            {
+//			*ppServer = *(ppServer-1);
+//            }
+//        }
+//
+//	*ppServer = pTargetServer;
+//    }
+
+
 }

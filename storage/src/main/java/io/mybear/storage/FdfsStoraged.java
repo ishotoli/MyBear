@@ -2,6 +2,7 @@ package io.mybear.storage;
 
 import com.sun.management.UnixOperatingSystemMXBean;
 import io.mybear.common.IniFileReader;
+import io.mybear.common.MappedByteBufferPool;
 import io.mybear.common.ProcessAction;
 import io.mybear.common.constants.config.FdfsGlobal;
 import io.mybear.common.constants.config.StorageGlobal;
@@ -75,6 +76,7 @@ public class FdfsStoraged {
             return;
         }
         String bindAddr = storageFuncInit(conf);
+        MappedByteBufferPool.init(StorageGlobal.g_buff_size, StorageGlobal.g_max_connections);
         StorageDio.init();
         TrunkShared.trunkSharedInit();
         socketServer(bindAddr, StorageGlobal.G_SERVER_PORT);
@@ -229,7 +231,7 @@ public class FdfsStoraged {
             if (result != 0) {
                 break;
             }
-            pGroupName = iniContext.getStrValue("groupName");
+            pGroupName = iniContext.getStrValue("group_name");
             if (pGroupName == null) {
                 result = storageGetGroupNameFromTracker();
                 if (result == 0) {
@@ -320,7 +322,8 @@ public class FdfsStoraged {
                     break;
                 }
             }
-            g_buff_size = buff_size;
+            //todo buff_size 为int 类型有没有问题
+            g_buff_size = (int) buff_size;
             if (g_buff_size < 4 * 1024 || g_buff_size < (10 + TRUNK_BINLOG_BUFFER_SIZE)) {
                 LOGGER.error("item \"buff_size\" is too small, value: %d < %d or < %d!", g_buff_size, 4 * 1024, 10 + TRUNK_BINLOG_BUFFER_SIZE);
                 result = -1;

@@ -2,7 +2,7 @@ package io.mybear.common.tracker;
 
 import io.mybear.common.FDFSStorageStat;
 
-public class FdfsStorageDetail {
+public class FdfsStorageDetail implements Comparable<FdfsStorageDetail> {
     public FdfsStorageStat state;
 
     public char status;
@@ -43,5 +43,20 @@ public class FdfsStorageDetail {
 //    int http_check_fail_count;
 //    char http_check_error_info[256];
 //#endif
+
+    /**
+     * tracker_mem_cmp_by_storage_id
+     * 写完了
+     *
+     * @return
+     */
+    public static int cmpByStorageId(FdfsStorageDetail p1, FdfsStorageDetail p2) {
+        return p1.id.compareTo(p2.id);
+    }
+
+    @Override
+    public int compareTo(FdfsStorageDetail o) {
+        return cmpByStorageId(this, o);
+    }
 
 }

@@ -1,6 +1,7 @@
 package io.mybear.storage.storageNio;
 
 
+import io.mybear.common.MappedByteBufferPool;
 import io.mybear.common.utils.TimeUtil;
 import io.mybear.storage.StorageDio;
 import io.mybear.storage.parserHandler.ParserHandler;
@@ -9,10 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -182,7 +181,11 @@ public abstract class Connection implements ClosableConnection {
     }
 
     private final void recycle(ByteBuffer buffer) {
-        NetSystem.getInstance().getBufferPool().recycle(buffer);
+        if (buffer.capacity() == MappedByteBufferPool.getSliceBufferSize()) {
+            MappedByteBufferPool.recycleBuffer(buffer);
+        } else {
+            myBufferPool.recycle(buffer);
+        }
     }
 
 
@@ -245,9 +248,8 @@ public abstract class Connection implements ClosableConnection {
     protected void cleanup() {
         // 清理资源占用
         if (readBuffer != null) {
-            if (!(readBuffer instanceof MappedByteBuffer)) {
-                myBufferPool.recycle(readBuffer);
-            }
+            recycle(readBuffer);
+            readBuffer = null;
         }
         Object writeBuffer = this.flagData;
         if (writeBuffer != null) {
@@ -468,25 +470,27 @@ public abstract class Connection implements ClosableConnection {
         offset = 0;
         if (readBuffer == null) {
             readBuffer = myBufferPool.allocateByteBuffer();
+        } else if (readBuffer.capacity() == MappedByteBufferPool.getSliceBufferSize()) {
+            MappedByteBufferPool.recycleBuffer(readBuffer);
+            readBuffer = myBufferPool.allocateByteBuffer();
         }
         Object data = flagData;
         if (data != null) {
             if (data != Boolean.FALSE && data != Boolean.TRUE) {
                 if (flagData instanceof ByteBuffer) {
-                    myBufferPool.recycle((ByteBuffer) flagData);
+                    ByteBuffer buffer = (ByteBuffer) flagData;
+                    recycle(buffer);
                 } else if (flagData instanceof ByteBufferArray) {
                     ((ByteBufferArray) flagData).recycle();
-                } else {
-                    //mapped
                 }
             }
-
         }
         flagData = null;
         enableRead();
         readBuffer.limit(10).position(0);
         this.packetState = header;
     }
+
 
     public void toPacket() {
         ByteBuffer byteBuffer = readBuffer;
@@ -521,11 +525,9 @@ public abstract class Connection implements ClosableConnection {
     public void toUpload() throws IOException {
         assert isInReactorThread();
         this.packetState = PacketState.upload;
-        if (readBuffer.capacity() <= 1024) {
+        if (readBuffer.capacity() != MappedByteBufferPool.getSliceBufferSize()) {
             myBufferPool.recycle(readBuffer);
-            RandomAccessFile memoryMappedFile = new RandomAccessFile("d:/sss" + "0", "rw");
-            LOGGER.debug("需要池化Mapped");
-            readBuffer = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 96 * 1024);
+            readBuffer = MappedByteBufferPool.allocateBuffer();
         }
         //this.flagData=Boolean.FALSE;
     }

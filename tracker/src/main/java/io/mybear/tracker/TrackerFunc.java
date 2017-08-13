@@ -119,7 +119,7 @@ public class TrackerFunc {
         }
 
         //TODO
-//        if ((result=fdfs_parse_storage_reserved_space(&iniContext, \
+//        if ((result=fdfsParseStorageReservedSpace(&iniContext, \
 //        &g_storage_reserved_space)) != 0)
 //        {
 //            break;

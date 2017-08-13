@@ -1,8 +1,15 @@
 package io.mybear.common.tracker;
 
+import io.mybear.common.constants.config.TrackerGlobal;
+
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
-public class FdfsGroupInfo implements Comparable<FdfsGroupInfo> {
+import static io.mybear.common.constants.CommonConstant.FDFS_STORE_SERVER_FIRST_BY_PRI;
+import static io.mybear.common.constants.CommonConstant.FDFS_STORE_SERVER_ROUND_ROBIN;
+
+public class FdfsGroupInfo {
     public static final int TRACKER_MEM_ALLOC_ONCE = 2;
     public long total_mb;  //total disk storage in MB
     public long free_mb;  //free disk storage in MB
@@ -16,7 +23,7 @@ public class FdfsGroupInfo implements Comparable<FdfsGroupInfo> {
     public List<FdfsStorageDetail> all_servers;   //all storage servers
     public List<FdfsStorageDetail> sorted_servers;  //storages order by ip addr
     public List<FdfsStorageDetail> active_servers;  //storages order by ip addr
-    public List<FdfsStorageDetail> pStoreServer;  //for upload priority mode
+    public FdfsStorageDetail pStoreServer;  //for upload priority mode
     public FdfsStorageDetail pTrunkServer;  //point to the trunk server
     public String last_trunk_server_id;
     int current_read_server;   //current read storage server index
@@ -39,94 +46,6 @@ public class FdfsGroupInfo implements Comparable<FdfsGroupInfo> {
     long last_sync_update;    //last synced update timestamp
     private String groupName;
 
-    //   public static int tracker_mem_realloc_store_servers(FdfsGroupInfo pGroup, int inc_count, boolean bNeedSleep) throws Exception{
-//        int result;
-//        FdfsStorageDetail[] old_servers;
-//        FdfsStorageDetail[] old_sorted_servers;
-//        FdfsStorageDetail[] old_active_servers;
-//        int[][] old_last_sync_timestamps;
-//        List<FdfsStorageDetail> new_servers;
-//        FdfsStorageDetail[] new_sorted_servers;
-//        FdfsStorageDetail[] new_active_servers;
-//        FdfsStorageDetail[] ppServer;
-//        FdfsStorageDetail[] ppServerEnd;
-//
-//        int[][] new_last_sync_timestamps;
-//        int old_size;
-//        int new_size;
-//        int err_no;
-//        int i;
-//
-//        new_size = pGroup.alloc_size + inc_count + TRACKER_MEM_ALLOC_ONCE;
-//        new_servers = new ArrayList<>(new_size);
-//        for (int j = 0; j < new_size; j++) {
-//            new_servers.add(j, new FdfsStorageDetail());
-//        }
-//
-//
-//        memcpy(new_servers, pGroup -> all_servers, \
-//                sizeof(FDFSStorageDetail *) * pGroup -> count);
-//
-//        new_sorted_servers = (FDFSStorageDetail * *) \
-//        malloc(sizeof(FDFSStorageDetail *) * new_size);
-//
-//        new_active_servers = (FDFSStorageDetail * *) \
-//        malloc(sizeof(FDFSStorageDetail *) * new_size);
-//
-//
-//        memset(new_sorted_servers, 0, sizeof(FDFSStorageDetail *) * new_size);
-//        memset(new_active_servers, 0, sizeof(FDFSStorageDetail *) * new_size);
-//        if (pGroup -> store_path_count > 0) {
-//            for (i = pGroup -> count; i < new_size; i++) {
-//                result = tracker_malloc_storage_path_mbs( * (new_servers + i), \
-//                pGroup -> store_path_count);
-//            }
-//        }
-//
-//        memcpy(new_sorted_servers, pGroup -> sorted_servers, \
-//                sizeof(FDFSStorageDetail *) * pGroup -> count);
-//
-//        memcpy(new_active_servers, pGroup -> active_servers, \
-//                sizeof(FDFSStorageDetail *) * pGroup -> count);
-//
-//        new_last_sync_timestamps = tracker_malloc_last_sync_timestamps( \
-//                new_size, & err_no);
-//        if (new_last_sync_timestamps == NULL) {
-//            free(new_servers);
-//            free(new_sorted_servers);
-//            free(new_active_servers);
-//
-//            return err_no;
-//        }
-//        for (i = 0; i < pGroup -> alloc_size; i++) {
-//            memcpy(new_last_sync_timestamps[i],  \
-//                    pGroup -> last_sync_timestamps[i], \
-//            (int) sizeof(int) *pGroup -> alloc_size);
-//        }
-//
-//        old_size = pGroup -> alloc_size;
-//        old_servers = pGroup -> all_servers;
-//        old_sorted_servers = pGroup -> sorted_servers;
-//        old_active_servers = pGroup -> active_servers;
-//        old_last_sync_timestamps = pGroup -> last_sync_timestamps;
-//
-//        pGroup.alloc_size = new_size;
-//        pGroup.all_servers = new_servers;
-//        pGroup.sorted_servers = new_sorted_servers;
-//        pGroup.active_servers = new_active_servers;
-//        pGroup.last_sync_timestamps = new_last_sync_timestamps;
-//
-//        tracker_mem_find_store_server(pGroup);
-//        if (g_if_leader_self && g_if_use_trunk_file) {
-//            tracker_mem_find_trunk_server(pGroup, true);
-//        }
-//
-//
-//        if (bNeedSleep) {
-//            sleep(1);
-//        }
-//        return 0;
-    //  }
     static int tracker_malloc_storage_path_mbs(FdfsStorageDetail pStorage, final int store_path_count) {
         if (store_path_count <= 0) {
             return 0;
@@ -134,6 +53,31 @@ public class FdfsGroupInfo implements Comparable<FdfsGroupInfo> {
         pStorage.path_total_mbs = new long[store_path_count];
         pStorage.path_free_mbs = new long[store_path_count];
         return 0;
+    }
+
+    /**
+     * tracker_mem_cmp_by_group_name
+     * 写完了
+     *
+     * @return
+     */
+    public static int cmpByGroupName(FdfsGroupInfo p1, FdfsGroupInfo p2) {
+        return p1.groupName.compareTo(p2.groupName);
+    }
+
+    /**
+     * tracker_mem_find_store_server
+     */
+    public void findStoreServer() {
+        if (this.active_count == 0) {
+            this.pStoreServer = null;
+            return;
+        }
+        if (TrackerGlobal.ggroups.getStoreServer() == FDFS_STORE_SERVER_FIRST_BY_PRI) {
+            this.pStoreServer = Collections.min(this.active_servers, Comparator.comparingInt(i -> i.upload_priority));
+        } else {
+            this.pStoreServer = this.active_servers.get(0);
+        }
     }
 
     public String getGroupName() {
@@ -144,13 +88,23 @@ public class FdfsGroupInfo implements Comparable<FdfsGroupInfo> {
         this.groupName = groupName;
     }
 
-    @Override
-    public int compareTo(FdfsGroupInfo o) {
-        return this.groupName.compareTo(o.groupName);
+    /**
+     * tracker_get_group_success_upload_count
+     * 写完了
+     *
+     * @return
+     */
+    public long getGroupSuccessUploadCount() {
+        int count = 0;
+        for (FdfsStorageDetail it : all_servers) {
+            count += it.stat.success_upload_count.sum();
+        }
+        return count;
     }
 
     /**
      * tracker_get_group_file_count
+     * 写完了
      *
      * @return
      */
@@ -165,13 +119,79 @@ public class FdfsGroupInfo implements Comparable<FdfsGroupInfo> {
 
     /**
      * tracker_get_group_sync_src_server
+     * 写完了
      */
-    public FdfsStorageDetail getGroupSyncSrcServer(FdfsGroupInfo pDestServer) {
+    public FdfsStorageDetail getGroupSyncSrcServer(String groupName) {
         for (FdfsStorageDetail it : this.active_servers) {
-            if (it.id.equals(pDestServer.getGroupName())) {
+            if (it.id.equals(groupName)) {
                 return it;
             }
         }
         return null;
     }
+
+    /**
+     * 写完了
+     * tracker_get_writable_storage
+     *
+     * @return
+     */
+    public FdfsStorageDetail getWritableStorage() {
+        int write_server_index;
+        if (TrackerGlobal.ggroups.getStoreServer() == FDFS_STORE_SERVER_ROUND_ROBIN) {
+            write_server_index = this.current_write_server++;
+            if (this.current_write_server >= this.active_count) {
+                this.current_write_server = 0;
+            }
+            if (write_server_index >= this.active_count) {
+                write_server_index = 0;
+            }
+            return this.active_servers.get(write_server_index);
+        } else //use the first server
+        {
+            return this.pStoreServer;
+        }
+    }
+
+    /**
+     * tracker_mem_get_active_storage_by_id
+     * 写完了
+     *
+     * @return
+     */
+    public FdfsStorageDetail getActiveStorageById(String id) {
+        if (id == null) {
+            return null;
+        }
+        if ("".equals(id)) return null;
+        FdfsStorageDetail target = new FdfsStorageDetail();
+        int index = Collections.binarySearch(this.active_servers, target);
+        if (index == -1) return null;
+        return this.active_servers.get(index);
+    }
+
+    /**
+     * tracker_mem_get_active_storage_by_ip
+     *
+     * @param ip_addr
+     * @return
+     */
+    public FdfsStorageDetail getActiveStorageByIp(String ip_addr) {
+//        FDFSStorageIdInfo *pStorageId;
+//
+//        if (!g_use_storage_id)
+//        {
+//            return getActiveStorageById( ip_addr);
+//        }
+//
+//        pStorageId = fdfs_get_storage_id_by_ip(pGroup->group_name, ip_addr);
+//        if (pStorageId == NULL)
+//        {
+//            return NULL;
+//        }
+//        return tracker_mem_get_active_storage_by_id(pGroup, pStorageId->id);
+        return null;
+    }
+
+
 }

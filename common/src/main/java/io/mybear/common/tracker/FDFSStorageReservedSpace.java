@@ -5,6 +5,6 @@ package io.mybear.common.tracker;
  */
 public class FDFSStorageReservedSpace {
     public char flag;
-    public int mb;
+    public long mb;
     public double ratio;
 }
