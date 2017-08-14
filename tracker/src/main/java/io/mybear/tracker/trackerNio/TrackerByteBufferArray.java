@@ -64,6 +64,14 @@ public class TrackerByteBufferArray {
 
     }
 
+    public ByteBuffer getFirstByteBuffer() {
+        ByteBuffer byteBuffer = writedBlockLst.get(0);
+        if (byteBuffer == null) {
+            byteBuffer = addNewBuffer();
+        }
+        return byteBuffer;
+    }
+
     /**
      * 申请一个ByteBuffer，并且放入队列，并且返回此ByteBuffer
      *
@@ -77,6 +85,49 @@ public class TrackerByteBufferArray {
 
     public ArrayList<ByteBuffer> getWritedBlockLst() {
         return writedBlockLst;
+    }
+
+    /**
+     * todo 性能优化
+     *
+     * @param n
+     */
+    public void write(int n) {
+        write((byte) ((n >> 24) & 0XFF));
+        write((byte) ((n >> 16) & 0XFF));
+        write(((byte) ((n >> 8) & 0XFF)));
+        write((byte) (n & 0xFF));
+    }
+
+    /**
+     * todo 性能优化
+     *
+     * @param n
+     */
+    public void write(long n) {
+        write((byte) ((n >> 56) & 0xFF));
+        write((byte) ((n >> 48) & 0xFF));
+        write((byte) ((n >> 40) & 0xFF));
+        write((byte) ((n >> 32) & 0xFF));
+        write((byte) ((n >> 24) & 0xFF));
+        write((byte) ((n >> 16) & 0xFF));
+        write((byte) ((n >> 8) & 0xFF));
+        write((byte) (n & 0xFF));
+    }
+
+    public ByteBuffer write(byte src) {
+        ByteBuffer curWritingBlock = null;
+        if (this.writedBlockLst.isEmpty()) {
+            curWritingBlock = this.addNewBuffer();
+        } else {
+            curWritingBlock = getLastByteBuffer();
+        }
+        int writeable = curWritingBlock.remaining();
+        if (writeable == 0) {
+            curWritingBlock = addNewBuffer();
+        }
+        curWritingBlock.put(src);
+        return curWritingBlock;
     }
 
     /**

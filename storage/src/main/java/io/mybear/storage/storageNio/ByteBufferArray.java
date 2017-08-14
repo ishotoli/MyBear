@@ -136,6 +136,20 @@ public class ByteBufferArray {
         this.packetLengths[curPacageIndex] = packageLenth;
     }
 
+    public ByteBuffer write(byte src) {
+        ByteBuffer curWritingBlock = null;
+        if (this.writedBlockLst.isEmpty()) {
+            curWritingBlock = this.addNewBuffer();
+        } else {
+            curWritingBlock = getLastByteBuffer();
+        }
+        int writeable = curWritingBlock.remaining();
+        if (writeable == 0) {
+            curWritingBlock = addNewBuffer();
+        }
+        curWritingBlock.put(src);
+        return curWritingBlock;
+    }
 
     /**
      * 将一个数组写入队列中

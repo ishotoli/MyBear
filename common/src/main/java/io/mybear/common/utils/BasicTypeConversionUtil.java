@@ -22,6 +22,20 @@ public class BasicTypeConversionUtil {
     }
 
     /**
+     * 整型转char数组
+     *
+     * @param n
+     * @param
+     */
+    public static byte[] int2buff(int n) {
+        byte[] buff = new byte[4];
+        buff[0] = (byte) ((n >> 24) & 0XFF);
+        buff[1] = (byte) ((n >> 16) & 0XFF);
+        buff[2] = (byte) ((n >> 8) & 0XFF);
+        buff[3] = (byte) (n & 0xFF);
+        return buff;
+    }
+    /**
      * 整型转char数组，需要指定开始的位置
      *
      * @param n
@@ -42,7 +56,6 @@ public class BasicTypeConversionUtil {
      * @param buff
      */
     public static void long2buff(long n, char[] buff) {
-
         buff[0] = (char) ((n >> 56) & 0xFF);
         buff[1] = (char) ((n >> 48) & 0xFF);
         buff[2] = (char) ((n >> 40) & 0xFF);

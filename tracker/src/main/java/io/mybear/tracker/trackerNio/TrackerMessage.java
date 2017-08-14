@@ -60,15 +60,40 @@ public class TrackerMessage {
     }
 
     public byte[] getRestByteArray() {
-        byte[] bytes = new byte[(int) (this.getPkgLen() - this.position)];
-        if (this.data.getWritedBlockLst().size() == 1) {
-            this.data.getLastByteBuffer().get(bytes);
-        } else {
-            System.out.println("此函数没写完整");
+        int size = (int) (this.getPkgLen() - this.position);
+        byte[] bytes = new byte[(size)];
+        int j = 0;
+        for (long i = this.position; i < size; i++, j++) {
+            bytes[j] = data.readByte(i);
         }
         return bytes;
     }
 
+    public String readIP() {
+        long size = position + 15;
+        byte[] ip = new byte[15];
+        int j = 0;
+        long i = position;
+        for (; i < size; i++, j++) {
+            ip[j] = data.readByte(i);
+        }
+        position = i;
+        return new String(ip);
+    }
+
+    public int readPort() {
+        int res = data.readInt(position);
+        position += 4;
+        return res;
+    }
+
+    public String readGroupname() {
+        byte[] groupname = new byte[16];
+        for (int i = 0; i < 16; i++) {
+            groupname[i] = readByte();
+        }
+        return new String(groupname);
+    }
     public long readLong() {
         long l = data.readLong(position);
         position += 8;
@@ -99,4 +124,5 @@ public class TrackerMessage {
         bytes[9] = this.status;
         return bytes;
     }
+
 }
